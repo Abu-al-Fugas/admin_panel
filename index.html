@@ -140,7 +140,7 @@
 
     <header>
         <div class="logo">
-            СМТ <span class="version-badge">Монитор</span>
+            СМТ <span class="version-badge">Монитор v2.6</span>
             <div class="status-indicator"><div class="dot" id="connDot"></div><span id="connText">...</span></div>
         </div>
         <nav>
@@ -165,6 +165,7 @@
                             <th class="text-right">Склад</th>
                             <th class="text-right">На руках</th>
                             <th class="text-right">Всего</th>
+                            <th class="text-right">Установлено</th>
                         </tr>
                     </thead>
                     <tbody id="materialsTableBody"></tbody>
@@ -323,13 +324,19 @@
             let displayList = getSortedMaterials();
             if (search) displayList = displayList.filter(m => m.name.toLowerCase().includes(search));
 
+            // Подсчет установленных позиций из db.reports
+            let installedTotals = {};
+            db.reports.forEach(r => {
+                installedTotals[r.materialId] = safeNum((installedTotals[r.materialId] || 0) + safeNum(r.qty));
+            });
+
             let catTotals = {};
             let html = '', currentCat = '';
             
             displayList.forEach(m => {
-                if(!catTotals[m.meta.catName]) catTotals[m.meta.catName] = { all: 0 };
+                if(!catTotals[m.meta.catName]) catTotals[m.meta.catName] = { all: 0, installed: 0 };
                 if (m.meta.catName !== currentCat && !search) { 
-                    html += `<tr class="group-header"><td colspan="4">📁 ${m.meta.catName}</td></tr>`; 
+                    html += `<tr class="group-header"><td colspan="5">📁 ${m.meta.catName}</td></tr>`; 
                     currentCat = m.meta.catName; 
                 }
                 
@@ -339,7 +346,10 @@
                     if(q > 0) { totalInstStock = safeNum(totalInstStock + q); hoverLines.push(`${getInstallerName(instId)}: ${fmtQty(q)} шт.`); }
                 }
                 let totalAll = safeNum(currentStock + totalInstStock);
+                let totalInstalled = installedTotals[m.id] || 0;
+
                 catTotals[m.meta.catName].all = safeNum(catTotals[m.meta.catName].all + totalAll);
+                catTotals[m.meta.catName].installed = safeNum(catTotals[m.meta.catName].installed + totalInstalled);
 
                 let instHTML = '<span style="color:var(--text-muted)">0</span>';
                 if (totalInstStock > 0) instHTML = `<span class="clickable-total" onclick="showInstallerDetails('${m.id}')">${fmtQty(totalInstStock)} шт</span>`;
@@ -349,16 +359,18 @@
                     <td class="text-right ${currentStock < 0 ? 'negative-stock' : ''}"><b>${fmtQty(currentStock)}</b></td>
                     <td class="text-right">${instHTML}</td>
                     <td class="text-right" style="color:var(--info-color); font-weight:bold;">${fmtQty(totalAll)}</td>
+                    <td class="text-right" style="color:var(--success-color); font-weight:bold;">${fmtQty(totalInstalled)}</td>
                 </tr>`;
             });
 
             if (displayList.length > 0) {
                 let sortedCats = Object.keys(catTotals).sort();
                 sortedCats.forEach(cat => {
-                    if (catTotals[cat].all > 0) {
+                    if (catTotals[cat].all > 0 || catTotals[cat].installed > 0) {
                         html += `<tr style="background:var(--header-bg); color:white; font-weight:bold; border-bottom: 1px solid rgba(255,255,255,0.2);">
                             <td colspan="3" style="text-align:right;">ИТОГО ${cat}:</td>
                             <td class="text-right">${fmtQty(catTotals[cat].all)}</td>
+                            <td class="text-right" style="color:#00e676;">${fmtQty(catTotals[cat].installed)}</td>
                         </tr>`;
                     }
                 });
@@ -585,16 +597,13 @@
             let diffX = touchendX - touchstartX;
             let diffY = touchendY - touchstartY;
             
-            // Проверяем, что свайп в основном горизонтальный и достаточно длинный
             if (Math.abs(diffX) > 60 && Math.abs(diffX) > Math.abs(diffY) * 1.5) {
                 const tabs = Array.from(document.querySelectorAll('.tab-btn'));
                 const activeIndex = tabs.findIndex(t => t.classList.contains('active'));
                 
                 if (diffX < 0 && activeIndex < tabs.length - 1) {
-                    // Свайп влево -> следующая вкладка
                     tabs[activeIndex + 1].click();
                 } else if (diffX > 0 && activeIndex > 0) {
-                    // Свайп вправо -> предыдущая вкладка
                     tabs[activeIndex - 1].click();
                 }
             }

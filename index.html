@@ -140,7 +140,7 @@
 
     <header>
         <div class="logo">
-            СМТ <span class="version-badge">Монитор v2.6</span>
+            СМТ <span class="version-badge">Монитор v2.7</span>
             <div class="status-indicator"><div class="dot" id="connDot"></div><span id="connText">...</span></div>
         </div>
         <nav>
@@ -324,10 +324,14 @@
             let displayList = getSortedMaterials();
             if (search) displayList = displayList.filter(m => m.name.toLowerCase().includes(search));
 
-            // Подсчет установленных позиций из db.reports
+            // СТРОГИЙ ФИЛЬТР: Подсчет установленных позиций (ТОЛЬКО СЧЕТЧИКИ)
             let installedTotals = {};
             db.reports.forEach(r => {
-                installedTotals[r.materialId] = safeNum((installedTotals[r.materialId] || 0) + safeNum(r.qty));
+                let m = db.materials.find(x => x.id === r.materialId);
+                // Защита от мусорных данных: берем в расчет только материалы с catId === 1
+                if (m && analyzeMaterial(m.name).catId === 1) {
+                    installedTotals[r.materialId] = safeNum((installedTotals[r.materialId] || 0) + safeNum(r.qty));
+                }
             });
 
             let catTotals = {};
@@ -346,31 +350,40 @@
                     if(q > 0) { totalInstStock = safeNum(totalInstStock + q); hoverLines.push(`${getInstallerName(instId)}: ${fmtQty(q)} шт.`); }
                 }
                 let totalAll = safeNum(currentStock + totalInstStock);
-                let totalInstalled = installedTotals[m.id] || 0;
-
                 catTotals[m.meta.catName].all = safeNum(catTotals[m.meta.catName].all + totalAll);
-                catTotals[m.meta.catName].installed = safeNum(catTotals[m.meta.catName].installed + totalInstalled);
 
                 let instHTML = '<span style="color:var(--text-muted)">0</span>';
                 if (totalInstStock > 0) instHTML = `<span class="clickable-total" onclick="showInstallerDetails('${m.id}')">${fmtQty(totalInstStock)} шт</span>`;
+                
+                // Рендер столбца Установлено: показываем цифру только для счетчиков, для КМЧ - пустота
+                let totalInstalledHTML = '';
+                if (m.meta.catId === 1) {
+                    let totalInstalled = installedTotals[m.id] || 0;
+                    totalInstalledHTML = `<b style="color:var(--success-color);">${fmtQty(totalInstalled)}</b>`;
+                    catTotals[m.meta.catName].installed = safeNum(catTotals[m.meta.catName].installed + totalInstalled);
+                }
                 
                 html += `<tr>
                     <td>${m.name}</td>
                     <td class="text-right ${currentStock < 0 ? 'negative-stock' : ''}"><b>${fmtQty(currentStock)}</b></td>
                     <td class="text-right">${instHTML}</td>
                     <td class="text-right" style="color:var(--info-color); font-weight:bold;">${fmtQty(totalAll)}</td>
-                    <td class="text-right" style="color:var(--success-color); font-weight:bold;">${fmtQty(totalInstalled)}</td>
+                    <td class="text-right">${totalInstalledHTML}</td>
                 </tr>`;
             });
 
             if (displayList.length > 0) {
                 let sortedCats = Object.keys(catTotals).sort();
                 sortedCats.forEach(cat => {
+                    // Выводим итоги, только если есть что показать
                     if (catTotals[cat].all > 0 || catTotals[cat].installed > 0) {
+                        // Для КМЧ ячейка "Установлено" в итогах будет пустой
+                        let installedTotalHTML = catTotals[cat].installed > 0 ? `<td class="text-right" style="color:#00e676;">${fmtQty(catTotals[cat].installed)}</td>` : `<td></td>`;
+                        
                         html += `<tr style="background:var(--header-bg); color:white; font-weight:bold; border-bottom: 1px solid rgba(255,255,255,0.2);">
                             <td colspan="3" style="text-align:right;">ИТОГО ${cat}:</td>
                             <td class="text-right">${fmtQty(catTotals[cat].all)}</td>
-                            <td class="text-right" style="color:#00e676;">${fmtQty(catTotals[cat].installed)}</td>
+                            ${installedTotalHTML}
                         </tr>`;
                     }
                 });

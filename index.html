@@ -3,40 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Статистика Установок (Бот)</title>
+    <title>Админ-панель СМТ Бот</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
 
     <style>
         :root {
-            --bg-color: #f4f7fa; --container-bg: #ffffff; --text-color: #333333; --text-muted: #6c757d;
-            --primary-color: #0d6efd; --danger-color: #dc3545; --success-color: #198754; --warning-color: #ffc107; --info-color: #17a2b8;
-            --border-color: #dee2e6; --header-bg: #212529; --header-text: #ffffff; --table-hover: #f8f9fa; --shadow: 0 1px 3px rgba(0,0,0,0.1);
+            --bg-color: #f4f7fa;
+            --container-bg: #ffffff;
+            --text-color: #333333;
+            --text-muted: #6c757d;
+            --primary-color: #0d6efd;
+            --danger-color: #dc3545;
+            --success-color: #198754;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+            --border-color: #dee2e6;
+            --header-bg: #212529;
+            --header-text: #ffffff;
+            --table-hover: #f8f9fa;
+            --shadow: 0 1px 3px rgba(0,0,0,0.1);
         }
         [data-theme="dark"] {
-            --bg-color: #121212; --container-bg: #1e1e1e; --text-color: #e0e0e0; --text-muted: #aaaaaa;
-            --primary-color: #3f8cff; --danger-color: #ff5252; --success-color: #2e7d32; --warning-color: #ffca28; --info-color: #00acc1;
-            --border-color: #333333; --header-bg: #000000; --header-text: #ffffff; --table-hover: #2a2a2a; --shadow: 0 1px 3px rgba(0,0,0,0.5);
+            --bg-color: #121212;
+            --container-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --text-muted: #aaaaaa;
+            --primary-color: #3f8cff;
+            --danger-color: #ff5252;
+            --success-color: #2e7d32;
+            --warning-color: #ffca28;
+            --info-color: #00acc1;
+            --border-color: #333333;
+            --header-bg: #000000;
+            --header-text: #ffffff;
+            --table-hover: #2a2a2a;
+            --shadow: 0 1px 3px rgba(0,0,0,0.5);
         }
         * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         
         body { margin: 0; background-color: var(--bg-color); color: var(--text-color); transition: background-color 0.3s; display: flex; flex-direction: column; min-height: 100vh; overflow-x: hidden;}
         
-        header { background-color: var(--header-bg); color: var(--header-text); padding: 0 10px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; height: 46px; box-shadow: 0 2px 4px rgba(0,0,0,0.2);}
-        .logo { font-size: 1rem; font-weight: bold; display: flex; align-items: center; gap: 6px; width: 180px; white-space: nowrap;}
+        header { background-color: var(--header-bg); color: var(--header-text); padding: 0 10px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; height: 46px; box-shadow: 0 2px 4px rgba(0,0,0,0.2); flex-wrap: wrap;}
+        .logo { font-size: 1rem; font-weight: bold; display: flex; align-items: center; gap: 6px; white-space: nowrap;}
         .version-badge { font-size: 0.65rem; background: var(--success-color); padding: 2px 5px; border-radius: 8px; font-weight: normal; margin-left: 4px;}
         .status-indicator { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; background: rgba(255,255,255,0.1); padding: 2px 6px; border-radius: 10px;}
         .dot { width: 6px; height: 6px; border-radius: 50%; background-color: var(--danger-color); }
         .dot.online { background-color: #00e676; box-shadow: 0 0 4px #00e676; }
 
-        nav { display: flex; justify-content: center; flex: 1; height: 100%;}
-        nav button { background: none; border: none; border-bottom: 3px solid transparent; color: rgba(255,255,255,0.7); font-size: 0.9rem; font-weight: 500; cursor: pointer; padding: 0 12px; transition: 0.2s; height: 100%;}
+        nav { display: flex; justify-content: center; flex: 1; height: 100%; flex-wrap: wrap;}
+        nav button { background: none; border: none; border-bottom: 3px solid transparent; color: rgba(255,255,255,0.7); font-size: 0.85rem; font-weight: 500; cursor: pointer; padding: 0 12px; transition: 0.2s; height: 100%; white-space: nowrap;}
         nav button:hover { color: white; background-color: rgba(255,255,255,0.1); }
         nav button.active { color: white; background-color: rgba(255,255,255,0.05); border-bottom-color: var(--primary-color);}
         .header-dummy { width: 180px; } 
 
-        main { padding: 8px; max-width: 1400px; margin: 0 auto; flex: 1; width: 100%;}
+        main { padding: 8px; max-width: 1600px; margin: 0 auto; flex: 1; width: 100%;}
         .tab-content { display: none; animation: fadeIn 0.15s ease; }
         .tab-content.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(3px); } to { opacity: 1; transform: translateY(0); } }
@@ -45,38 +67,44 @@
         .filters { display: flex; gap: 4px; flex-wrap: wrap; align-items: center;}
         
         button.btn { padding: 6px 12px; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85rem; color: white; font-weight: 500; transition: 0.2s;}
-        .btn-primary { background-color: var(--primary-color); } .btn-danger { background-color: var(--danger-color); } .btn-success { background-color: var(--success-color); }
-        .btn-small { padding: 3px 8px; font-size: 0.8rem; }
+        .btn-primary { background-color: var(--primary-color); } .btn-danger { background-color: var(--danger-color); } .btn-success { background-color: var(--success-color); } .btn-warning { background-color: var(--warning-color); color: #000; }
+        .btn-small { padding: 3px 8px; font-size: 0.75rem; }
         .btn:hover { opacity: 0.9; }
         
-        input, select { padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 3px; background: var(--container-bg); color: var(--text-color); font-size: 0.9rem; min-height: 34px; box-sizing: border-box;}
+        input, select, textarea { padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 3px; background: var(--container-bg); color: var(--text-color); font-size: 0.9rem; min-height: 34px; box-sizing: border-box;}
+        textarea { min-height: 100px; width: 100%; }
         
         .table-responsive { width: 100%; overflow-x: auto; background: var(--container-bg); border-radius: 4px; box-shadow: var(--shadow); -webkit-overflow-scrolling: touch;}
-        table { width: 100%; border-collapse: collapse; font-size: 0.85rem; white-space: nowrap; }
-        th, td { padding: 6px 8px; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
-        th { background-color: var(--header-bg); color: white; font-weight: 500; cursor: pointer; user-select: none; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        th, td { padding: 4px 5px; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+        th { background-color: var(--header-bg); color: white; font-weight: 500; cursor: pointer; user-select: none; position: sticky; top: 0; z-index: 10; }
         th:hover { background-color: #343a40; }
         tr:hover { background-color: var(--table-hover); }
-        
         .text-right { text-align: right; }
         .text-center { text-align: center; }
 
-        .installer-stock-list { margin: 0; padding: 0; list-style: none; font-size: 0.8rem;}
-        .installer-stock-list li { margin-bottom: 1px; padding-bottom: 2px; border-bottom: 1px dashed var(--border-color); }
-        .installer-stock-list li:last-child { border-bottom: none; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-bottom: 12px; }
+        .stat-card { background: var(--container-bg); padding: 8px; border-radius: 4px; box-shadow: var(--shadow); text-align: center; }
+        .stat-number { font-size: 1.3rem; font-weight: bold; color: var(--primary-color); }
+        .stat-label { font-size: 0.7rem; color: var(--text-muted); }
 
-        footer { background: var(--header-bg); padding: 8px 15px; display: flex; justify-content: center; gap: 10px; margin-top: auto;}
-        .footer-btn { background: none; border: 1px solid rgba(255,255,255,0.3); color: white; padding: 6px 10px; border-radius: 3px; cursor: pointer; font-size: 0.8rem; font-weight: 500;}
-        .footer-btn:hover { background: rgba(255,255,255,0.1); border-color: white;}
-
-        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; }
+        .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; overflow-y: auto; padding: 20px; }
         .modal-overlay.active { display: flex; }
-        .modal { background: var(--container-bg); padding: 16px; border-radius: 4px; width: 95%; max-width: 500px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); max-height: 90vh; display: flex; flex-direction: column; }
+        .modal { background: var(--container-bg); padding: 16px; border-radius: 4px; width: 95%; max-width: 700px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); max-height: 90vh; display: flex; flex-direction: column; }
         .modal-header { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.05rem; font-weight: bold; }
         .modal-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-muted); line-height: 1; padding: 0;}
-        .modal-body { overflow-y: auto; padding-right: 4px; }
+        .modal-body { overflow-y: auto; padding-right: 4px; flex: 1; }
         .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); }
         
+        /* Новые стили для grouped form */
+        .form-section { margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
+        .form-section:last-child { border-bottom: none; margin-bottom: 0; }
+        .form-section h4 { margin: 0 0 8px 0; font-size: 0.95rem; color: var(--primary-color); display: flex; align-items: center; gap: 6px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .form-group { display: flex; flex-direction: column; gap: 2px; }
+        .form-group label { font-weight: 500; font-size: 0.8rem; }
+        .form-group input, .form-group select { width: 100%; }
+
         #loadingOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--header-bg); z-index:9999; display:flex; flex-direction: column; justify-content:center; align-items:center; color:white; font-size:1rem; font-weight:bold; }
         
         @media (max-width: 768px) {
@@ -84,32 +112,27 @@
             .logo, .header-dummy { width: 100%; justify-content: center; margin-top: 2px; margin-bottom: 6px; font-size: 1.05rem;}
             .header-dummy { display: none; }
             nav { justify-content: space-between; width: 100%;}
-            nav button { flex: 1; padding: 6px 2px; text-align: center; font-size: 0.8rem;}
+            nav button { flex: 1; padding: 6px 2px; text-align: center; font-size: 0.7rem;}
             .controls { flex-direction: column; padding: 6px; gap: 8px;}
             .filters { flex-direction: column; width: 100%; gap: 4px; }
             .filters input, .filters select { width: 100%; }
+            .form-grid { grid-template-columns: 1fr; }
+            table { font-size: 0.65rem; }
+            th, td { padding: 3px 3px; max-width: 80px; }
         }
     </style>
 </head>
 <body>
 
-    <script>
-        window.onerror = function(message) {
-            const overlay = document.getElementById('loadingOverlay');
-            if (overlay) { overlay.innerHTML = `<div style="background: white; color: black; padding: 15px; border-radius: 4px; text-align: center;"><h3 style="color: #dc3545; margin-top:0;">❌ Ошибка</h3><p>${message}</p></div>`; }
-            return false;
-        };
-    </script>
-
     <div id="loadingOverlay"><div>🔄 Подключение к базе данных...</div></div>
 
     <header>
         <div class="logo">
-            СМТ Бот <span class="version-badge">v1.2</span>
+            СМТ Бот <span class="version-badge">v2.5 Admin</span>
             <div class="status-indicator"><div class="dot" id="connDot"></div><span id="connText">...</span></div>
         </div>
         <nav>
-            <button class="tab-btn active" data-target="summary">Установки</button>
+            <button class="tab-btn active" data-target="summary">Сводка</button>
             <button class="tab-btn" data-target="fullTable">Таблица</button>
         </nav>
         <div class="header-dummy"></div>
@@ -121,16 +144,20 @@
                 <div class="filters">
                     <label style="font-weight:bold; margin-right:5px; font-size:0.9rem;">Фильтр по дате:</label>
                     <input type="month" id="filterMonth" onchange="renderAll()">
-                    <button class="btn btn-warning btn-small" style="margin-left:5px; color:black;" onclick="document.getElementById('filterMonth').value=''; renderAll();">Сбросить</button>
+                    <button class="btn btn-warning btn-small" onclick="document.getElementById('filterMonth').value=''; renderAll();">Сбросить</button>
+                    <button class="btn btn-success btn-small" onclick="openImportModal()">📥 Импорт из текста</button>
+                    <button class="btn btn-primary btn-small" onclick="openAddRecordModal()">➕ Добавить запись</button>
+                    <button class="btn btn-danger btn-small" onclick="confirmDeleteAll()">🗑 Удалить всё</button>
                 </div>
             </div>
+            <div class="stats-grid" id="statsGrid"></div>
             <div class="table-responsive">
                 <table>
                     <thead>
                         <tr>
-                            <th style="width: 50%;">Монтажник</th>
-                            <th class="text-center" style="width: 25%;">Счетчиков</th>
-                            <th class="text-right" style="width: 25%;">Действия</th>
+                            <th style="width: 35%;">Монтажник</th>
+                            <th class="text-center" style="width: 15%;">Счетчиков</th>
+                            <th class="text-right" style="width: 50%;">Действия</th>
                         </tr>
                     </thead>
                     <tbody id="summaryTableBody"></tbody>
@@ -140,26 +167,31 @@
 
         <section id="fullTable" class="tab-content">
             <div class="controls">
-                <div style="font-size: 0.85rem; color: var(--text-muted);">Нажмите на заголовок столбца для сортировки</div>
-                <button class="btn btn-success" onclick="exportToExcel()">📥 Выгрузить в Excel</button>
+                <div style="font-size: 0.85rem; color: var(--text-muted);">Нажмите на заголовок для сортировки</div>
+                <div>
+                    <button class="btn btn-success" onclick="exportToExcel()">📥 Выгрузить в Excel</button>
+                    <button class="btn btn-primary" onclick="refreshTable()">🔄 Обновить</button>
+                </div>
             </div>
-            <div class="table-responsive">
+            <div class="table-responsive" id="fullTableWrapper">
                 <table id="dataTable">
                     <thead>
                         <tr>
-                            <th onclick="sortTable(0)">Монтажник ↕</th>
-                            <th onclick="sortTable(1)">Объект ↕</th>
-                            <th onclick="sortTable(2)">Адрес ↕</th>
-                            <th onclick="sortTable(3)">GPS ↕</th>
-                            <th onclick="sortTable(4)">Должность ↕</th>
-                            <th onclick="sortTable(5)">Потребитель ↕</th>
-                            <th onclick="sortTable(6)">ЛС ↕</th>
-                            <th onclick="sortTable(7)">Мощность ↕</th>
-                            <th onclick="sortTable(8)">Модель ↕</th>
-                            <th onclick="sortTable(9)">№ ↕</th>
-                            <th onclick="sortTable(10)">Пломба ↕</th>
-                            <th onclick="sortTable(11)">Дата ↕</th>
-                            <th class="text-right">Удал.</th>
+                            <th onclick="sortTable(0)">Монтажник</th>
+                            <th onclick="sortTable(1)">Объект</th>
+                            <th onclick="sortTable(2)">Адрес</th>
+                            <th onclick="sortTable(3)">Расположение</th>
+                            <th onclick="sortTable(4)">Мощн. (м³/ч)</th>
+                            <th onclick="sortTable(5)">Модель</th>
+                            <th onclick="sortTable(6)">№</th>
+                            <th onclick="sortTable(7)">Пломба</th>
+                            <th onclick="sortTable(8)">Ст. модель</th>
+                            <th onclick="sortTable(9)">Ст. №</th>
+                            <th onclick="sortTable(10)">Ст. показ.</th>
+                            <th onclick="sortTable(11)">Направл.</th>
+                            <th onclick="sortTable(12)">SIM</th>
+                            <th onclick="sortTable(13)">Дата</th>
+                            <th class="text-center">Действия</th>
                         </tr>
                     </thead>
                     <tbody id="fullTableBody"></tbody>
@@ -172,15 +204,131 @@
         <button class="footer-btn" onclick="toggleTheme()">🌓 Сменить тему</button>
     </footer>
 
-    <div class="modal-overlay" id="detailsModal">
+    <!-- Модальное окно редактирования / добавления -->
+    <div class="modal-overlay" id="editModal">
         <div class="modal">
+            <div class="modal-header"><span id="editTitle">Редактирование записи</span><button class="modal-close" onclick="closeModal('editModal')">&times;</button></div>
+            <div class="modal-body" id="editBody">
+                <form id="editForm">
+                    <!-- Группа: Информация об объекте -->
+                    <div class="form-section">
+                        <h4>📍 Информация об объекте</h4>
+                        <div class="form-grid">
+                            <div class="form-group"><label>Объект</label><input type="text" id="e_objectName" placeholder="Например: Пекарня"></div>
+                            <div class="form-group"><label>Адрес</label><input type="text" id="e_address" placeholder="Улица, дом"></div>
+                            <div class="form-group"><label>Расположение счетчика</label><input type="text" id="e_uirgLocation" placeholder="Улица / Котельная / ..."></div>
+                        </div>
+                    </div>
+
+                    <!-- Группа: Потребитель -->
+                    <div class="form-section">
+                        <h4>👤 Потребитель</h4>
+                        <div class="form-grid">
+                            <div class="form-group"><label>Должность</label><input type="text" id="e_position" placeholder="Собственник, директор..."></div>
+                            <div class="form-group"><label>ФИО</label><input type="text" id="e_consumer" placeholder="Иванов И.И."></div>
+                            <div class="form-group"><label>Лицевой счет</label><input type="text" id="e_ls" placeholder="Номер ЛС"></div>
+                        </div>
+                    </div>
+
+                    <!-- Группа: Монтажник -->
+                    <div class="form-section">
+                        <h4>🔧 Монтажник</h4>
+                        <div class="form-grid">
+                            <div class="form-group"><label>ФИО монтажника</label><input type="text" id="e_installer" placeholder="Петров П.П."></div>
+                        </div>
+                    </div>
+
+                    <!-- Группа: Старый счетчик -->
+                    <div class="form-section">
+                        <h4>🔄 Старый счетчик</h4>
+                        <div class="form-grid">
+                            <div class="form-group"><label>Модель</label><input type="text" id="e_oldMeterModel" placeholder="СГМН-1 G6"></div>
+                            <div class="form-group"><label>Заводской №</label><input type="text" id="e_oldMeterSerial" placeholder="Номер старого"></div>
+                            <div class="form-group"><label>Показания</label><input type="text" id="e_oldMeterReadings" placeholder="Показания"></div>
+                        </div>
+                    </div>
+
+                    <!-- Группа: Новый счетчик -->
+                    <div class="form-section">
+                        <h4>🆕 Новый счетчик</h4>
+                        <div class="form-grid">
+                            <div class="form-group"><label>Модель</label><input type="text" id="e_model" placeholder="CMT-Смарт G6"></div>
+                            <div class="form-group"><label>Серийный №</label><input type="text" id="e_serial" placeholder="Номер нового"></div>
+                            <div class="form-group"><label>Мощность (м³/ч)</label><input type="text" id="e_totalPower" placeholder="Например: 11.6"></div>
+                            <div class="form-group"><label>Пломба контролера</label><input type="text" id="e_controllerSeal" placeholder="Номер пломбы"></div>
+                            <div class="form-group"><label>Направление</label><input type="text" id="e_newGasDirection" placeholder="сверху-вниз / слева-направо"></div>
+                            <div class="form-group"><label>№ SIM</label><input type="text" id="e_simCardNumber" placeholder="Номер SIM-карты"></div>
+                        </div>
+                    </div>
+
+                    <!-- Группа: Дополнительно -->
+                    <div class="form-section">
+                        <h4>📌 Дополнительно</h4>
+                        <div class="form-grid">
+                            <div class="form-group"><label>GPS</label><input type="text" id="e_gps" placeholder="43.300058, 45.684476"></div>
+                            <div class="form-group"><label>Дата</label><input type="text" id="e_date" placeholder="30.06.2026, 20:43"></div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" id="e_recordId">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" id="deleteBtn" onclick="deleteRecordFromEdit()" style="display:none;">🗑 Удалить</button>
+                <button class="btn btn-primary" onclick="saveEdit()">💾 Сохранить</button>
+                <button class="btn btn-secondary" onclick="closeModal('editModal')">Отмена</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно детализации -->
+    <div class="modal-overlay" id="detailsModal">
+        <div class="modal" style="max-width: 600px;">
             <div class="modal-header"><span id="detailsTitle">Детализация</span><button class="modal-close" onclick="closeModal('detailsModal')">&times;</button></div>
             <div class="modal-body" id="detailsBody"></div>
             <div class="modal-footer"><button class="btn btn-primary" onclick="closeModal('detailsModal')">Закрыть</button></div>
         </div>
     </div>
 
+    <!-- Модальное окно импорта -->
+    <div class="modal-overlay" id="importModal">
+        <div class="modal" style="max-width: 800px;">
+            <div class="modal-header"><span>Импорт установок из текста</span><button class="modal-close" onclick="closeModal('importModal')">&times;</button></div>
+            <div class="modal-body">
+                <p style="font-size:0.9rem; color:var(--text-muted);">Вставьте текст или загрузите .txt файл. <b>Дубликаты по серийному номеру будут пропущены.</b> Парсер автоматически определяет формат.</p>
+                <div style="margin-bottom:8px;">
+                    <label class="btn btn-primary" style="display:inline-block; padding:6px 12px; cursor:pointer;">📂 Выбрать файл .txt
+                        <input type="file" id="importFileInput" accept=".txt" style="display:none;" onchange="loadFileContent(event)">
+                    </label>
+                </div>
+                <textarea id="importTextArea" rows="12" placeholder="Или вставьте текст сюда..."></textarea>
+                <div style="margin-top:8px;">
+                    <button class="btn btn-success" onclick="importFromText()">📥 Импортировать</button>
+                    <button class="btn btn-secondary" onclick="closeModal('importModal')">Отмена</button>
+                </div>
+                <div id="importStatus" style="margin-top:8px; font-weight:bold;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно подтверждения удаления всех -->
+    <div class="modal-overlay" id="confirmDeleteModal">
+        <div class="modal" style="max-width: 450px;">
+            <div class="modal-header"><span>⚠️ Удалить все записи?</span><button class="modal-close" onclick="closeModal('confirmDeleteModal')">&times;</button></div>
+            <div class="modal-body">
+                <p style="color:var(--danger-color); font-weight:bold;">Это действие необратимо! Все записи будут удалены из Firebase.</p>
+                <p>Введите слово <b>"удалить"</b> для подтверждения:</p>
+                <input type="text" id="deleteConfirmInput" placeholder="введите удалить" style="width:100%; padding:8px;">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" onclick="executeDeleteAll()">🗑 Удалить всё</button>
+                <button class="btn btn-secondary" onclick="closeModal('confirmDeleteModal')">Отмена</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // ===== Firebase =====
         const firebaseConfig = {
             apiKey: "AIzaSyCofoBIWqUX_P8pQUIKKbitEG2GTbXT7Ak",
             authDomain: "botstm100.firebaseapp.com",
@@ -196,11 +344,602 @@
         const dbRef = database.ref('bot_installations');
 
         let dbList = [];
-        let sortDirection = {}; 
+        let sortDirection = {};
 
+        // ===== UI =====
+        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
+        function openModal(id) { document.getElementById(id).classList.add('active'); }
+
+        // ===== Статистика =====
+        function renderStats() {
+            const grid = document.getElementById('statsGrid');
+            const total = dbList.length;
+            const installers = new Set(dbList.map(i => i.installer).filter(Boolean));
+            const models = {};
+            dbList.forEach(i => { if(i.model) models[i.model] = (models[i.model]||0)+1; });
+            const topModel = Object.entries(models).sort((a,b)=>b[1]-a[1])[0];
+
+            // Подсчет "сегодня" с 7:00
+            const now = new Date();
+            const todayStart = new Date(now);
+            todayStart.setHours(7, 0, 0, 0);
+            const todayEnd = new Date(now);
+            todayEnd.setHours(23, 59, 59, 999);
+            let todayCount = 0;
+            dbList.forEach(item => {
+                if (!item.date) return;
+                const parts = item.date.split(',');
+                if (parts.length < 2) return;
+                const datePart = parts[0].trim().split('.');
+                if (datePart.length !== 3) return;
+                const timePart = parts[1].trim().split(':');
+                if (timePart.length !== 2) return;
+                const day = parseInt(datePart[0]), month = parseInt(datePart[1])-1, year = parseInt(datePart[2]);
+                const hour = parseInt(timePart[0]), minute = parseInt(timePart[1]);
+                const itemDate = new Date(year, month, day, hour, minute);
+                if (itemDate >= todayStart && itemDate <= todayEnd) {
+                    todayCount++;
+                }
+            });
+
+            grid.innerHTML = `
+                <div class="stat-card"><div class="stat-number">${total}</div><div class="stat-label">Всего установок</div></div>
+                <div class="stat-card"><div class="stat-number">${todayCount}</div><div class="stat-label">Сегодня (с 7:00)</div></div>
+                <div class="stat-card"><div class="stat-number">${installers.size}</div><div class="stat-label">Монтажников</div></div>
+                <div class="stat-card"><div class="stat-number">${topModel ? topModel[1] : 0}</div><div class="stat-label">Самая част. модель: ${topModel ? topModel[0] : '-'}</div></div>
+            `;
+        }
+
+        // ===== Сводка =====
+        function renderSummary() {
+            const tbody = document.getElementById('summaryTableBody');
+            const filterMonth = document.getElementById('filterMonth').value;
+            let stats = {};
+
+            dbList.forEach(item => {
+                if (filterMonth && item.date) {
+                    let parts = item.date.split(',')[0].split('.');
+                    if (parts.length === 3) {
+                        let recordMonth = `${parts[2]}-${parts[1]}`;
+                        if (recordMonth !== filterMonth) return;
+                    }
+                }
+                let installer = item.installer || 'Неизвестно';
+                if (!stats[installer]) stats[installer] = { count: 0, records: [] };
+                stats[installer].count++;
+                stats[installer].records.push(item);
+            });
+
+            let html = '';
+            Object.keys(stats).sort().forEach(inst => {
+                html += `<tr>
+                    <td><b>${inst}</b></td>
+                    <td class="text-center"><b style="color:var(--success-color); font-size:1.1rem;">${stats[inst].count}</b></td>
+                    <td class="text-right">
+                        <button class="btn btn-primary btn-small" onclick="showDetails('${inst}')">📋 Детализация</button>
+                        <button class="btn btn-warning btn-small" onclick="editInstaller('${inst}')">✎ Правка</button>
+                        <button class="btn btn-success btn-small" onclick="openAddRecordWithInstaller('${inst}')">➕</button>
+                    </td>
+                </tr>`;
+            });
+            if (html === '') html = '<tr><td colspan="3" style="text-align:center; padding:20px;">Нет данных</td></tr>';
+            tbody.innerHTML = html;
+            renderStats();
+        }
+
+        // ===== Детализация =====
+        function showDetails(installerName) {
+            const filterMonth = document.getElementById('filterMonth').value;
+            let records = dbList.filter(item => item.installer === installerName);
+
+            if (filterMonth) {
+                records = records.filter(item => {
+                    if(!item.date) return false;
+                    let parts = item.date.split(',')[0].split('.');
+                    return parts.length === 3 && `${parts[2]}-${parts[1]}` === filterMonth;
+                });
+            }
+
+            let byDay = {};
+            records.forEach(r => {
+                let day = r.date ? r.date.split(',')[0] : 'Без даты';
+                if (!byDay[day]) byDay[day] = [];
+                byDay[day].push(r);
+            });
+
+            let html = '<ul style="list-style:none; padding:0; margin:0;">';
+            Object.keys(byDay).sort((a, b) => {
+                let pA = a.split('.'), pB = b.split('.');
+                if(pA.length === 3 && pB.length === 3) {
+                    return new Date(`${pB[2]}-${pB[1]}-${pB[0]}`) - new Date(`${pA[2]}-${pA[1]}-${pA[0]}`);
+                }
+                return 0;
+            }).forEach(d => {
+                html += `<li style="background:var(--table-hover); padding:6px; margin-top:8px; font-weight:bold; border-radius:3px; color:var(--primary-color);">📅 ${d}</li>`;
+                byDay[d].forEach(r => {
+                    html += `<li style="display:flex; justify-content:space-between; align-items:center; padding:4px 10px; border-bottom:1px solid var(--border-color);">
+                        <span>${r.model || '-'} (${r.serial || '-'})</span>
+                        <span style="font-size:0.7rem; color:var(--text-muted);">${r.objectName || ''}</span>
+                    </li>`;
+                });
+            });
+            html += '</ul>';
+
+            document.getElementById('detailsTitle').innerText = 'Установки: ' + installerName;
+            document.getElementById('detailsBody').innerHTML = html || '<p>Нет записей</p>';
+            openModal('detailsModal');
+        }
+
+        // ===== Массовое переименование монтажника =====
+        function editInstaller(installer) {
+            if (!confirm(`Редактировать все записи монтажника "${installer}"? Это изменит поле "Монтажник" для всех его установок.`)) return;
+            const newName = prompt('Введите новое имя монтажника:', installer);
+            if (newName && newName !== installer) {
+                const existing = dbList.some(item => item.installer === newName);
+                if (existing) {
+                    if (!confirm(`Имя "${newName}" уже существует. Объединить записи?`)) return;
+                }
+                const updates = {};
+                dbList.forEach(item => {
+                    if (item.installer === installer) {
+                        updates[item.id] = { ...item, installer: newName };
+                    }
+                });
+                const promises = Object.entries(updates).map(([id, data]) => dbRef.child(id).update(data));
+                Promise.all(promises).then(() => {
+                    alert(`Имя монтажника изменено на "${newName}" для ${Object.keys(updates).length} записей.`);
+                }).catch(err => alert('Ошибка: ' + err.message));
+            }
+        }
+
+        // ===== Таблица =====
+        function renderFullTable() {
+            const tbody = document.getElementById('fullTableBody');
+            let html = '';
+            dbList.forEach(item => {
+                html += `<tr>
+                    <td><b>${item.installer || '-'}</b></td>
+                    <td>${item.objectName || '-'}</td>
+                    <td title="${item.address || '-'}">${item.address || '-'}</td>
+                    <td>${item.uirgLocation || '-'}</td>
+                    <td>${item.totalPower || '-'}</td>
+                    <td><b>${item.model || '-'}</b></td>
+                    <td>${item.serial || '-'}</td>
+                    <td>${item.controllerSeal || '-'}</td>
+                    <td>${item.oldMeterModel || '-'}</td>
+                    <td>${item.oldMeterSerial || '-'}</td>
+                    <td>${item.oldMeterReadings || '-'}</td>
+                    <td>${item.newGasDirection || '-'}</td>
+                    <td>${item.simCardNumber || '-'}</td>
+                    <td>${item.date || '-'}</td>
+                    <td class="text-center">
+                        <button class="btn btn-primary btn-small" onclick="editRecord('${item.id}')" title="Редактировать">✎</button>
+                        <button class="btn btn-danger btn-small" onclick="deleteRecord('${item.id}')" title="Удалить">✕</button>
+                    </td>
+                </tr>`;
+            });
+            if (html === '') html = '<tr><td colspan="15" style="text-align:center; padding:20px;">Нет записей</td></tr>';
+            tbody.innerHTML = html;
+        }
+
+        function refreshTable() {
+            renderFullTable();
+        }
+
+        // ===== Удаление =====
+        function deleteRecord(id) {
+            if (confirm('Удалить запись?')) {
+                dbRef.child(id).remove().catch(e => alert('Ошибка: ' + e.message));
+            }
+        }
+
+        function deleteRecordFromEdit() {
+            const id = document.getElementById('e_recordId').value;
+            if (id && confirm('Удалить эту запись?')) {
+                dbRef.child(id).remove().then(() => {
+                    closeModal('editModal');
+                }).catch(e => alert('Ошибка: ' + e.message));
+            }
+        }
+
+        // ===== Редактирование =====
+        function editRecord(id) {
+            const item = dbList.find(i => i.id === id);
+            if (!item) return alert('Запись не найдена');
+            fillEditForm(item);
+            document.getElementById('e_recordId').value = id;
+            document.getElementById('deleteBtn').style.display = 'inline-block';
+            document.getElementById('editTitle').innerText = 'Редактирование: ' + (item.objectName || 'Без названия');
+            openModal('editModal');
+        }
+
+        function fillEditForm(item) {
+            document.getElementById('e_objectName').value = item.objectName || '';
+            document.getElementById('e_address').value = item.address || '';
+            document.getElementById('e_uirgLocation').value = item.uirgLocation || '';
+            document.getElementById('e_installer').value = item.installer || '';
+            document.getElementById('e_model').value = item.model || '';
+            document.getElementById('e_serial').value = item.serial || '';
+            document.getElementById('e_position').value = item.position || '';
+            document.getElementById('e_consumer').value = item.consumer || '';
+            document.getElementById('e_ls').value = item.ls || '';
+            document.getElementById('e_totalPower').value = item.totalPower || '';
+            document.getElementById('e_controllerSeal').value = item.controllerSeal || '';
+            document.getElementById('e_oldMeterModel').value = item.oldMeterModel || '';
+            document.getElementById('e_oldMeterSerial').value = item.oldMeterSerial || '';
+            document.getElementById('e_oldMeterReadings').value = item.oldMeterReadings || '';
+            document.getElementById('e_newGasDirection').value = item.newGasDirection || '';
+            document.getElementById('e_simCardNumber').value = item.simCardNumber || '';
+            document.getElementById('e_gps').value = item.gps || '';
+            document.getElementById('e_date').value = item.date || '';
+        }
+
+        function saveEdit() {
+            const id = document.getElementById('e_recordId').value;
+            const data = {
+                objectName: document.getElementById('e_objectName').value.trim(),
+                address: document.getElementById('e_address').value.trim(),
+                uirgLocation: document.getElementById('e_uirgLocation').value.trim(),
+                installer: document.getElementById('e_installer').value.trim(),
+                model: document.getElementById('e_model').value.trim(),
+                serial: document.getElementById('e_serial').value.trim(),
+                position: document.getElementById('e_position').value.trim(),
+                consumer: document.getElementById('e_consumer').value.trim(),
+                ls: document.getElementById('e_ls').value.trim(),
+                totalPower: document.getElementById('e_totalPower').value.trim(),
+                controllerSeal: document.getElementById('e_controllerSeal').value.trim(),
+                oldMeterModel: document.getElementById('e_oldMeterModel').value.trim(),
+                oldMeterSerial: document.getElementById('e_oldMeterSerial').value.trim(),
+                oldMeterReadings: document.getElementById('e_oldMeterReadings').value.trim(),
+                newGasDirection: document.getElementById('e_newGasDirection').value.trim(),
+                simCardNumber: document.getElementById('e_simCardNumber').value.trim(),
+                gps: document.getElementById('e_gps').value.trim(),
+                date: document.getElementById('e_date').value.trim()
+            };
+            if (id) {
+                dbRef.child(id).update(data).then(() => {
+                    closeModal('editModal');
+                }).catch(e => alert('Ошибка сохранения: ' + e.message));
+            } else {
+                data.timestamp = Date.now();
+                dbRef.push(data).then(() => {
+                    closeModal('editModal');
+                }).catch(e => alert('Ошибка добавления: ' + e.message));
+            }
+        }
+
+        // ===== Добавление новой записи =====
+        function openAddRecordModal() {
+            document.getElementById('e_recordId').value = '';
+            document.getElementById('deleteBtn').style.display = 'none';
+            document.getElementById('editTitle').innerText = '➕ Добавление новой установки';
+            document.querySelectorAll('#editForm input[type="text"]').forEach(inp => inp.value = '');
+            openModal('editModal');
+        }
+
+        function openAddRecordWithInstaller(installer) {
+            openAddRecordModal();
+            document.getElementById('e_installer').value = installer;
+        }
+
+        // ===== Удаление всего =====
+        function confirmDeleteAll() {
+            document.getElementById('deleteConfirmInput').value = '';
+            openModal('confirmDeleteModal');
+        }
+
+        function executeDeleteAll() {
+            const input = document.getElementById('deleteConfirmInput').value.trim();
+            if (input !== 'удалить') {
+                alert('Введите слово "удалить" для подтверждения.');
+                return;
+            }
+            if (!confirm('Точно удалить все записи? Это необратимо!')) return;
+            dbRef.remove().then(() => {
+                closeModal('confirmDeleteModal');
+                alert('Все записи удалены.');
+            }).catch(e => alert('Ошибка удаления: ' + e.message));
+        }
+
+        // ===== Сортировка =====
+        function sortTable(n) {
+            const table = document.getElementById("dataTable");
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+            if (rows.length === 0) return;
+            const dir = sortDirection[n] === "asc" ? "desc" : "asc";
+            sortDirection[n] = dir;
+
+            rows.sort((a, b) => {
+                const x = a.querySelectorAll('td')[n]?.innerText?.toLowerCase() || '';
+                const y = b.querySelectorAll('td')[n]?.innerText?.toLowerCase() || '';
+                if (dir === "asc") return x.localeCompare(y);
+                else return y.localeCompare(x);
+            });
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        // ===== Экспорт Excel =====
+        function exportToExcel() {
+            let table = document.getElementById("dataTable");
+            if (!table || dbList.length === 0) { alert("Нет данных"); return; }
+            let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
+            html += '<head><meta charset="utf-8"></head><body><table>';
+            let headers = table.querySelectorAll("thead th");
+            html += '<tr>';
+            for (let j = 0; j < headers.length - 1; j++) {
+                let text = headers[j].innerText.replace(" ↕", "");
+                html += '<th style="background:#212529;color:#fff;border:1px solid #dee2e6;">' + text + '</th>';
+            }
+            html += '</tr>';
+            let rows = table.querySelectorAll("tbody tr");
+            rows.forEach(row => {
+                let cells = row.querySelectorAll("td");
+                if (cells.length > 1) {
+                    html += '<tr>';
+                    for (let j = 0; j < cells.length - 1; j++) {
+                        html += '<td style="border:1px solid #dee2e6;">' + cells[j].innerText + '</td>';
+                    }
+                    html += '</tr>';
+                }
+            });
+            html += '</table></body></html>';
+            let blob = new Blob([html], { type: "application/vnd.ms-excel" });
+            let url = URL.createObjectURL(blob);
+            let a = document.createElement("a");
+            let d = new Date();
+            let dateStr = d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,'0') + "-" + String(d.getDate()).padStart(2,'0');
+            a.href = url; a.download = "Otchet_Ustanovok_" + dateStr + ".xls";
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+        }
+
+        // ============================================================
+        // НОВАЯ СИСТЕМА ИМПОРТА – УНИВЕРСАЛЬНЫЙ ПАРСЕР (исправленная)
+        // ============================================================
+
+        // Синонимы полей (ключ – имя поля в итоговом объекте, значение – массив возможных названий)
+        const fieldSynonyms = {
+            objectName: ['Объект', 'Наименование объекта'],
+            address: ['Адрес', 'Адрес объекта'],
+            installer: ['Монтажник', 'ФИО монтажника'],
+            consumer: ['Потребитель', 'ФИО потребителя'],
+            position: ['Должность'],
+            ls: ['Лицевой счет', 'ЛС'],
+            model: ['Модель', 'Модель нового счетчика'],
+            serial: ['Серийный номер', 'Серийный №', 'Серийный № нового счетчика', '№'],
+            gps: ['GPS', 'Координаты GPS'],
+            date: ['Дата', 'Дата/время генерации'],
+            controllerSeal: ['Пломба', 'Пломба контролера'],
+            oldMeterModel: ['Модель старого'],
+            oldMeterSerial: ['№ старого'],
+            oldMeterReadings: ['Показания старого'],
+            newGasDirection: ['Направление', 'Направление нового'],
+            simCardNumber: ['SIM', '№ SIM', 'SIM-карта'],
+            uirgLocation: ['Расположение', 'Расположение счетчика'],
+            totalPower: ['Мощность']
+        };
+
+        // Маппинг первых цифр серийного номера -> модель
+        const modelByPrefix = {
+            '561': 'CMT-Смарт G4',
+            '562': 'CMT-Смарт G6',
+            '563': 'CMT-Смарт G10',
+            '204': 'CMT- Комплекс G16',
+            '205': 'CMT- Комплекс G25',
+            '206': 'CMT- Комплекс G40',
+            '208': 'CMT- Комплекс G65'
+        };
+
+        /**
+         * Разбивает текст на отдельные блоки (записи) – улучшенная версия
+         */
+        function splitIntoRecords(text) {
+            const lines = text.split('\n');
+            const records = [];
+            let currentBlock = [];
+            let inRecord = false;
+
+            // Паттерны, которые могут начинать новую запись
+            const startPatterns = [
+                /^\*\*\d+\.\s*message/i,
+                /^Отчет о проделанных работах/i,
+                /^•\s*Объект:/i,
+                /^Объект:/i,
+                /^Наименование объекта:/i
+            ];
+
+            for (let line of lines) {
+                const trimmed = line.trim();
+                let isStart = false;
+                for (let pattern of startPatterns) {
+                    if (pattern.test(trimmed)) {
+                        isStart = true;
+                        break;
+                    }
+                }
+                if (isStart && currentBlock.length > 0) {
+                    records.push(currentBlock.join('\n'));
+                    currentBlock = [];
+                }
+                currentBlock.push(line);
+            }
+            if (currentBlock.length > 0) {
+                records.push(currentBlock.join('\n'));
+            }
+            return records;
+        }
+
+        /**
+         * Универсальная функция поиска поля в блоке по списку синонимов.
+         */
+        function findField(blockLines, synonyms) {
+            for (let line of blockLines) {
+                for (let syn of synonyms) {
+                    const escapedSyn = syn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                    const regex = new RegExp(`${escapedSyn}\\s*[:.\\-]\\s*(.*)`, 'i');
+                    const match = line.match(regex);
+                    if (match) {
+                        return match[1].trim();
+                    }
+                }
+            }
+            return null;
+        }
+
+        function extractDate(block) {
+            const dateMatch = block.match(/(\d{2}\.\d{2}\.\d{4},\s*\d{2}:\d{2})/);
+            if (dateMatch) return dateMatch[1];
+            const dateMatch2 = block.match(/(\d{2}\.\d{2}\.\d{4})/);
+            if (dateMatch2) return dateMatch2[1];
+            return null;
+        }
+
+        function cleanSerial(serial) {
+            if (!serial) return '';
+            const parts = serial.split(';');
+            serial = parts[0].trim();
+            return serial.replace(/\D/g, '');
+        }
+
+        function detectModelBySerial(serial) {
+            const cleaned = cleanSerial(serial);
+            if (cleaned.length < 3) return null;
+            const prefix = cleaned.substring(0, 3);
+            return modelByPrefix[prefix] || null;
+        }
+
+        function extractRecord(block) {
+            const lines = block.split('\n').map(l => l.trim());
+            const record = {};
+
+            for (let [field, synonyms] of Object.entries(fieldSynonyms)) {
+                const value = findField(lines, synonyms);
+                if (value) {
+                    record[field] = value;
+                }
+            }
+
+            if (!record.date) {
+                const dateVal = extractDate(block);
+                if (dateVal) record.date = dateVal;
+            }
+
+            if (record.serial) {
+                record.serial = cleanSerial(record.serial);
+            }
+
+            if (!record.model && record.serial) {
+                const detected = detectModelBySerial(record.serial);
+                if (detected) record.model = detected;
+            }
+
+            for (let key in record) {
+                if (record[key] === '' || record[key] === null) {
+                    delete record[key];
+                }
+            }
+
+            if (!record.objectName && !record.installer) {
+                return null;
+            }
+
+            return record;
+        }
+
+        function importFromText() {
+            const textarea = document.getElementById('importTextArea');
+            const text = textarea.value;
+            if (!text.trim()) {
+                alert('Вставьте текст или загрузите файл.');
+                return;
+            }
+
+            const status = document.getElementById('importStatus');
+            status.innerHTML = '⏳ Обработка...';
+            status.style.color = 'var(--text-color)';
+
+            const blocks = splitIntoRecords(text);
+            let totalFound = blocks.length;
+
+            const extractedRecords = [];
+            const errors = [];
+            blocks.forEach((block, index) => {
+                try {
+                    const rec = extractRecord(block);
+                    if (rec) {
+                        extractedRecords.push(rec);
+                    } else {
+                        errors.push(`Блок #${index+1}: не удалось извлечь данные (нет объекта или монтажника)`);
+                    }
+                } catch (e) {
+                    errors.push(`Блок #${index+1}: ошибка парсинга – ${e.message}`);
+                }
+            });
+
+            const existingSerials = new Set(dbList.map(i => i.serial).filter(Boolean));
+            const uniqueRecords = [];
+            const duplicates = [];
+            extractedRecords.forEach(rec => {
+                if (rec.serial && existingSerials.has(rec.serial)) {
+                    duplicates.push(rec);
+                } else {
+                    uniqueRecords.push(rec);
+                    if (rec.serial) existingSerials.add(rec.serial);
+                }
+            });
+
+            let imported = 0;
+            let importErrors = 0;
+            const promises = uniqueRecords.map(rec => {
+                rec.timestamp = Date.now();
+                return dbRef.push(rec)
+                    .then(() => imported++)
+                    .catch(err => { importErrors++; errors.push(`Ошибка записи: ${err.message}`); });
+            });
+
+            Promise.all(promises).then(() => {
+                const totalDuplicates = duplicates.length;
+                const totalErrors = errors.length;
+
+                let report = `✅ Импорт завершён.\n`;
+                report += `Всего найдено записей: ${totalFound}\n`;
+                report += `Успешно извлечено: ${extractedRecords.length}\n`;
+                report += `Импортировано (уникальных): ${imported}\n`;
+                report += `Пропущено как дубликаты: ${totalDuplicates}\n`;
+                report += `Ошибок: ${totalErrors}\n`;
+                if (totalErrors > 0) {
+                    report += `\nСписок ошибок:\n${errors.map(e => '  • ' + e).join('\n')}`;
+                }
+                status.innerHTML = report.replace(/\n/g, '<br>');
+                status.style.color = 'var(--success-color)';
+
+                setTimeout(() => {
+                    closeModal('importModal');
+                }, 4000);
+            });
+        }
+
+        function loadFileContent(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                document.getElementById('importTextArea').value = ev.target.result;
+            };
+            reader.readAsText(file, 'UTF-8');
+            e.target.value = '';
+        }
+
+        function openImportModal() {
+            document.getElementById('importTextArea').value = '';
+            document.getElementById('importStatus').innerHTML = '';
+            openModal('importModal');
+        }
+
+        // ===== Firebase Listener =====
         firebase.database().ref('.info/connected').on('value', snap => {
             const dot = document.getElementById('connDot'), text = document.getElementById('connText');
-            if (snap.val() === true) { dot.classList.add('online'); text.innerText = 'В сети'; text.style.color = '#00e676'; } 
+            if (snap.val() === true) { dot.classList.add('online'); text.innerText = 'В сети'; text.style.color = '#00e676'; }
             else { dot.classList.remove('online'); text.innerText = 'Офлайн'; text.style.color = 'var(--text-muted)'; }
         });
 
@@ -216,236 +955,44 @@
             dbList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
             renderAll();
         }, err => {
-            document.getElementById('loadingOverlay').innerHTML = `<div style="background: white; color: black; padding: 20px; border-radius: 4px; text-align: center;"><h3 style="color: #dc3545; margin-top:0;">❌ Ошибка доступа</h3><p>${err.message}</p></div>`;
+            document.getElementById('loadingOverlay').innerHTML = `<div style="background: white; color: black; padding: 20px; border-radius: 4px; text-align: center;"><h3 style="color: #dc3545;">❌ Ошибка</h3><p>${err.message}</p></div>`;
         });
 
-        function renderSummary() {
-            const tbody = document.getElementById('summaryTableBody');
-            const filterMonth = document.getElementById('filterMonth').value; 
-            
-            let stats = {};
-
-            dbList.forEach(item => {
-                if (filterMonth && item.date) {
-                    let dateParts = item.date.split(',')[0].split('.'); 
-                    if (dateParts.length === 3) {
-                        let recordMonth = `${dateParts[2]}-${dateParts[1]}`; 
-                        if (recordMonth !== filterMonth) return;
-                    }
-                }
-
-                let installer = item.installer || 'Неизвестно';
-                if (!stats[installer]) stats[installer] = { count: 0, records: [] };
-                
-                stats[installer].count++;
-                stats[installer].records.push(item);
-            });
-
-            let html = '';
-            let sortedInstallers = Object.keys(stats).sort();
-
-            sortedInstallers.forEach(inst => {
-                html += `<tr>
-                    <td><b>${inst}</b></td>
-                    <td class="text-center"><b style="color:var(--success-color); font-size:1.1rem;">${stats[inst].count}</b> шт</td>
-                    <td class="text-right">
-                        <button class="btn btn-primary btn-small" onclick="showDetails('${inst}')">Детализ.</button>
-                    </td>
-                </tr>`;
-            });
-
-            if (html === '') html = '<tr><td colspan="3" style="text-align:center; padding: 20px;">Нет данных по заданным фильтрам</td></tr>';
-            tbody.innerHTML = html;
-        }
-
-        function showDetails(installerName) {
-            const filterMonth = document.getElementById('filterMonth').value;
-            let records = dbList.filter(item => item.installer === installerName);
-
-            if (filterMonth) {
-                records = records.filter(item => {
-                    if(!item.date) return false;
-                    let dateParts = item.date.split(',')[0].split('.'); 
-                    return dateParts.length === 3 && `${dateParts[2]}-${dateParts[1]}` === filterMonth;
-                });
-            }
-
-            let byDay = {};
-            records.forEach(r => {
-                let day = r.date ? r.date.split(',')[0] : 'Без даты';
-                if (!byDay[day]) byDay[day] = [];
-                byDay[day].push(r);
-            });
-
-            let html = '<ul class="installer-stock-list" style="font-size:0.9rem;">';
-            
-            Object.keys(byDay).sort((a, b) => {
-                let pA = a.split('.'), pB = b.split('.');
-                if(pA.length === 3 && pB.length === 3) {
-                    return new Date(`${pB[2]}-${pB[1]}-${pB[0]}`) - new Date(`${pA[2]}-${pA[1]}-${pA[0]}`);
-                }
-                return 0;
-            }).forEach(d => {
-                html += `<li style="background:var(--table-hover); padding:6px; margin-top:8px; font-weight:bold; border-radius:3px; color:var(--primary-color);">📅 ${d}</li>`;
-                
-                byDay[d].forEach(r => {
-                    html += `<li style="display:flex; justify-content:space-between; align-items:flex-start; padding:4px 10px; border-bottom:1px solid var(--border-color);">
-                        <div style="display:flex; flex-direction:column;">
-                            <span>📟 ${r.model || '-'}</span>
-                            <span style="font-size:0.75rem; color:var(--text-muted);">№ ${r.serial || '-'}</span>
-                        </div>
-                    </li>`;
-                });
-            });
-            html += '</ul>';
-
-            document.getElementById('detailsTitle').innerText = 'Установки: ' + installerName;
-            document.getElementById('detailsBody').innerHTML = html;
-            openModal('detailsModal');
-        }
-
-        function renderFullTable() {
-            const tbody = document.getElementById('fullTableBody');
-            let html = '';
-
-            dbList.forEach(item => {
-                html += `<tr>
-                    <td><b>${item.installer || '-'}</b></td>
-                    <td>${item.objectName || '-'}</td>
-                    <td title="${item.address || '-'}">${item.address || '-'}</td>
-                    <td>${item.gps || '-'}</td>
-                    <td>${item.position || '-'}</td>
-                    <td>${item.consumer || '-'}</td>
-                    <td>${item.ls || '-'}</td>
-                    <td>${item.totalPower ? item.totalPower + ' m³/ч' : '-'}</td>
-                    <td><b>${item.model || '-'}</b></td>
-                    <td>${item.serial || '-'}</td>
-                    <td>${item.controllerSeal || '-'}</td>
-                    <td>${item.date || '-'}</td>
-                    <td class="text-right">
-                        <button class="btn btn-danger btn-small" style="padding: 2px 6px;" onclick="deleteRecord('${item.id}')">✕</button>
-                    </td>
-                </tr>`;
-            });
-
-            if (html === '') html = '<tr><td colspan="13" style="text-align:center; padding: 20px;">База данных пуста</td></tr>';
-            tbody.innerHTML = html;
-        }
-
-        function deleteRecord(id) {
-            if(confirm("Вы уверены, что хотите удалить эту запись из базы бота?")) {
-                dbRef.child(id).remove().catch(e => alert("Ошибка удаления: " + e.message));
-            }
-        }
-
-        function sortTable(n) {
-            let table, rows, switching, i, x, y, shouldSwitch, dir, switchcount = 0;
-            table = document.getElementById("dataTable");
-            switching = true;
-            
-            dir = sortDirection[n] === "asc" ? "desc" : "asc";
-            sortDirection[n] = dir;
-
-            while (switching) {
-                switching = false;
-                rows = table.rows;
-                
-                for (i = 1; i < (rows.length - 1); i++) {
-                    shouldSwitch = false;
-                    x = rows[i].getElementsByTagName("TD")[n];
-                    y = rows[i + 1].getElementsByTagName("TD")[n];
-                    
-                    let cmpX = x.innerText.toLowerCase();
-                    let cmpY = y.innerText.toLowerCase();
-
-                    if (dir === "asc") {
-                        if (cmpX > cmpY) { shouldSwitch = true; break; }
-                    } else {
-                        if (cmpX < cmpY) { shouldSwitch = true; break; }
-                    }
-                }
-                if (shouldSwitch) {
-                    rows[i].parentNode.insertBefore(rows[i + 1], rows[i]);
-                    switching = true;
-                    switchcount++;
-                }
-            }
-        }
-
-        function exportToExcel() {
-            let table = document.getElementById("dataTable");
-            if (!table || dbList.length === 0) {
-                alert("Нет данных для выгрузки");
-                return;
-            }
-
-            let html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">';
-            html += '<head><meta charset="utf-8"></head><body>';
-            html += '<table>';
-            
-            html += '<tr>';
-            let headers = table.querySelectorAll("thead th");
-            for(let j = 0; j < headers.length - 1; j++) { 
-                let text = headers[j].innerText.replace(" ↕", "");
-                html += '<th style="background-color: #212529; color: #ffffff; border: 1px solid #dee2e6;">' + text + '</th>';
-            }
-            html += '</tr>';
-
-            let rows = table.querySelectorAll("tbody tr");
-            rows.forEach(row => {
-                let cells = row.querySelectorAll("td");
-                if (cells.length > 1) { 
-                    html += '<tr>';
-                    for(let j = 0; j < cells.length - 1; j++) { 
-                        html += '<td style="border: 1px solid #dee2e6;">' + cells[j].innerText + '</td>';
-                    }
-                    html += '</tr>';
-                }
-            });
-
-            html += '</table></body></html>';
-
-            let blob = new Blob([html], { type: "application/vnd.ms-excel" });
-            let url = URL.createObjectURL(blob);
-            let a = document.createElement("a");
-            
-            let d = new Date();
-            let dateStr = d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, '0') + "-" + String(d.getDate()).padStart(2, '0');
-            
-            a.href = url;
-            a.download = "Otchet_Ustanovok_" + dateStr + ".xls";
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
-
-        function openModal(id) { document.getElementById(id).classList.add('active'); }
-        function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-        
-        document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => { 
-            document.querySelectorAll('.tab-btn, .tab-content').forEach(e => e.classList.remove('active')); 
-            b.classList.add('active'); 
-            const tid = b.dataset.target; 
-            if (tid) document.getElementById(tid).classList.add('active'); 
-            renderAll(); 
-        }));
-
-        function renderAll() { 
+        function renderAll() {
             renderSummary();
             renderFullTable();
         }
-        
-        function toggleTheme() { 
-            const b = document.body; 
-            if (b.getAttribute('data-theme')==='dark') { 
-                b.removeAttribute('data-theme'); localStorage.setItem('bot_theme','light'); 
-            } else { 
-                b.setAttribute('data-theme','dark'); localStorage.setItem('bot_theme','dark'); 
-            } 
-        }
-        if(localStorage.getItem('bot_theme')==='dark') document.body.setAttribute('data-theme','dark');
 
+        // ===== Вкладки =====
+        document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn, .tab-content').forEach(e => e.classList.remove('active'));
+            b.classList.add('active');
+            const tid = b.dataset.target;
+            if (tid) document.getElementById(tid).classList.add('active');
+            renderAll();
+        }));
+
+        // ===== Тема =====
+        function toggleTheme() {
+            const b = document.body;
+            if (b.getAttribute('data-theme') === 'dark') {
+                b.removeAttribute('data-theme');
+                localStorage.setItem('bot_theme', 'light');
+            } else {
+                b.setAttribute('data-theme', 'dark');
+                localStorage.setItem('bot_theme', 'dark');
+            }
+        }
+        if (localStorage.getItem('bot_theme') === 'dark') document.body.setAttribute('data-theme', 'dark');
+
+        // ===== Инициализация =====
+        renderAll();
+
+        document.querySelectorAll('.modal-overlay').forEach(el => {
+            el.addEventListener('click', (e) => {
+                if (e.target === el) closeModal(el.id);
+            });
+        });
     </script>
 </body>
 </html>

@@ -411,16 +411,15 @@
 
         let dbList = [];
         let sortDirection = {};
-        let isInlineEditing = false; // Флаг режима группового редактирования
+        let isInlineEditing = false; 
 
         // ===== UI =====
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
         function openModal(id) { document.getElementById(id).classList.add('active'); }
 
-        // Защита от закрытия окна редактирования по клику мимо
         document.querySelectorAll('.modal-overlay').forEach(el => {
             el.addEventListener('click', (e) => {
-                if (el.id === 'editModal') return; // Игнорируем клик по фону для окна редактирования
+                if (el.id === 'editModal') return; 
                 if (e.target === el) closeModal(el.id);
             });
         });
@@ -457,10 +456,66 @@
 
             grid.innerHTML = `
                 <div class="stat-card"><div class="stat-number">${total}</div><div class="stat-label">Всего установок</div></div>
-                <div class="stat-card"><div class="stat-number">${todayCount}</div><div class="stat-label">Сегодня (с 7:00)</div></div>
+                <div class="stat-card" style="cursor: pointer; transition: background 0.2s; border: 1px dashed var(--primary-color);" onclick="showTodayDetails()" onmouseover="this.style.background='var(--table-hover)'" onmouseout="this.style.background='var(--container-bg)'" title="Нажмите для просмотра деталей">
+                    <div class="stat-number">${todayCount}</div>
+                    <div class="stat-label" style="color: var(--primary-color); font-weight: bold;">Сегодня (с 7:00) 🔍</div>
+                </div>
                 <div class="stat-card"><div class="stat-number">${installers.size}</div><div class="stat-label">Монтажников</div></div>
                 <div class="stat-card"><div class="stat-number">${topModel ? topModel[1] : 0}</div><div class="stat-label">Самая част. модель: ${topModel ? topModel[0] : '-'}</div></div>
             `;
+        }
+
+        // ===== Детализация за сегодня =====
+        function showTodayDetails() {
+            const now = new Date();
+            const todayStart = new Date(now); todayStart.setHours(7, 0, 0, 0);
+            const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999);
+            
+            let todayRecords = dbList.filter(item => {
+                if (!item.date) return false;
+                const parts = item.date.split(',');
+                if (parts.length < 2) return false;
+                const datePart = parts[0].trim().split('.');
+                if (datePart.length !== 3) return false;
+                const timePart = parts[1].trim().split(':');
+                if (timePart.length !== 2) return false;
+                
+                const day = parseInt(datePart[0]), month = parseInt(datePart[1])-1, year = parseInt(datePart[2]);
+                const hour = parseInt(timePart[0]), minute = parseInt(timePart[1]);
+                const itemDate = new Date(year, month, day, hour, minute);
+                
+                return itemDate >= todayStart && itemDate <= todayEnd;
+            });
+
+            if (todayRecords.length === 0) {
+                document.getElementById('detailsTitle').innerText = 'Установки сегодня (с 7:00)';
+                document.getElementById('detailsBody').innerHTML = '<p style="text-align:center; padding: 20px;">За сегодня еще нет установок.</p>';
+                openModal('detailsModal');
+                return;
+            }
+
+            let byInstaller = {};
+            todayRecords.forEach(r => {
+                let inst = r.installer || 'Неизвестно';
+                if(!byInstaller[inst]) byInstaller[inst] = [];
+                byInstaller[inst].push(r);
+            });
+
+            let html = '<ul style="list-style:none; padding:0; margin:0;">';
+            Object.keys(byInstaller).sort().forEach(inst => {
+                html += `<li style="background:var(--table-hover); padding:6px; margin-top:8px; font-weight:bold; border-radius:3px; color:var(--primary-color);">🧑‍🔧 ${inst} (${byInstaller[inst].length} шт.)</li>`;
+                byInstaller[inst].forEach(r => {
+                    html += `<li style="display:flex; justify-content:space-between; align-items:center; padding:4px 10px; border-bottom:1px solid var(--border-color);">
+                        <span><b>${r.model || '-'}</b><br><span style="font-size:0.7rem; color:var(--text-muted);">№ ${r.serial || '-'}</span></span>
+                        <span style="font-size:0.75rem; color:var(--text-muted); text-align:right;">${r.objectName || 'Без объекта'}<br><b style="color:var(--text-color);">${r.date ? r.date.split(',')[1].trim() : ''}</b></span>
+                    </li>`;
+                });
+            });
+            html += '</ul>';
+
+            document.getElementById('detailsTitle').innerText = `Сегодня установлено: ${todayRecords.length} шт.`;
+            document.getElementById('detailsBody').innerHTML = html;
+            openModal('detailsModal');
         }
 
         // ===== Сводка =====
@@ -565,9 +620,9 @@
 
         // ===== Таблица =====
         function renderFullTable() {
-            if (isInlineEditing) return; // Не обновлять таблицу, если мы в режиме редактирования
+            if (isInlineEditing) return; 
             const tbody = document.getElementById('fullTableBody');
-            document.getElementById('selectAllCheckbox').checked = false; // Сброс чекбокса "Выбрать всё"
+            document.getElementById('selectAllCheckbox').checked = false; 
             
             let html = '';
             dbList.forEach(item => {
@@ -615,16 +670,14 @@
                 checkboxes.forEach(cb => {
                     let tr = cb.closest('tr');
                     tr.classList.add('editing-row');
-                    tr.style.backgroundColor = '#fff3cd'; // Подсветка редактируемой строки
+                    tr.style.backgroundColor = '#fff3cd'; 
                     
-                    // Заменяем текст на инпуты, исключая колонки с чекбоксами и кнопками
                     tr.querySelectorAll('td[data-field]').forEach(td => {
                         let field = td.getAttribute('data-field');
                         let val = td.innerText === '-' ? '' : td.innerText;
                         td.innerHTML = `<input type="text" class="inline-edit-input" data-field="${field}" value="${val.replace(/"/g, '&quot;')}">`;
                     });
                     
-                    // Прячем кнопки действий для этой строки
                     tr.querySelector('.edit-single-btn').style.display = 'none';
                     tr.querySelector('.del-single-btn').style.display = 'none';
                 });
@@ -641,7 +694,7 @@
             document.getElementById('btnInlineEdit').style.display = 'inline-block';
             document.getElementById('btnInlineSave').style.display = 'none';
             document.getElementById('btnInlineCancel').style.display = 'none';
-            renderFullTable(); // Сброс таблицы к исходному состоянию
+            renderFullTable(); 
         }
 
         function saveInlineEdit() {
@@ -658,7 +711,6 @@
                     updateData[field] = inp.value.trim();
                 });
                 
-                // Берем оригинальные данные и сливаем с новыми
                 let item = dbList.find(i => i.id === id);
                 if(item) {
                     updates[id] = { ...item, ...updateData };
@@ -676,7 +728,6 @@
                 document.getElementById('btnInlineSave').style.display = 'none';
                 document.getElementById('btnInlineSave').innerText = '💾 Сохранить правки';
                 document.getElementById('btnInlineCancel').style.display = 'none';
-                // Данные обновятся сами через лисенер on('value')
                 alert('Изменения успешно сохранены!');
             }).catch(e => {
                 alert('Ошибка: ' + e.message);
@@ -684,7 +735,7 @@
             });
         }
 
-        // ===== Удаление (с подтверждением слова "удалить") =====
+        // ===== Удаление =====
         function deleteRecord(id) {
             let pr = prompt('Вы точно хотите удалить запись? Введите слово "удалить" для подтверждения:');
             if (pr && pr.trim().toLowerCase() === 'удалить') {
@@ -816,13 +867,11 @@
             const rows = Array.from(tbody.querySelectorAll('tr'));
             if (rows.length === 0) return;
 
-            // Очистка всех иконок сортировки
             document.querySelectorAll('.sort-icon').forEach(icon => icon.innerText = '');
 
             const dir = sortDirection[n] === "asc" ? "desc" : "asc";
             sortDirection[n] = dir;
             
-            // Установка иконки на текущую колонку
             const currentIcon = document.getElementById(`sort-${n}`);
             if (currentIcon) {
                 currentIcon.innerText = dir === 'asc' ? '▲' : '▼';
@@ -833,7 +882,6 @@
                 let y = b.querySelectorAll('td')[n]?.innerText?.toLowerCase() || '';
 
                 if (type === 'date') {
-                    // Парсинг кастомной даты: 30.06.2026, 20:43
                     let parseDate = str => {
                         if (!str || str === '-') return 0;
                         let parts = str.split(',');
@@ -844,7 +892,6 @@
                         if(dParts.length !== 3) return 0;
                         let tParts = t.split(':');
                         
-                        // Месяц начинается с 0 в JS Date
                         return new Date(dParts[2], parseInt(dParts[1])-1, dParts[0], tParts[0], tParts[1]).getTime();
                     };
                     
@@ -864,7 +911,7 @@
             rows.forEach(row => tbody.appendChild(row));
         }
 
-        // ===== Экспорт Excel (Исправленный формат текста) =====
+        // ===== Экспорт Excel =====
         function exportToExcel() {
             let table = document.getElementById("dataTable");
             if (!table || dbList.length === 0) { alert("Нет данных"); return; }
@@ -872,7 +919,6 @@
             html += '<head><meta charset="utf-8"></head><body><table>';
             let headers = table.querySelectorAll("thead th");
             html += '<tr>';
-            // Пропускаем 0-й столбец (чекбоксы) и последний (действия)
             for (let j = 1; j < headers.length - 1; j++) {
                 let text = headers[j].innerText.replace(" ▼", "").replace(" ▲", "");
                 html += '<th style="background:#212529;color:#fff;border:1px solid #dee2e6;">' + text + '</th>';
@@ -884,7 +930,6 @@
                 if (cells.length > 1) {
                     html += '<tr>';
                     for (let j = 1; j < cells.length - 1; j++) {
-                        // mso-number-format:'\@' заставляет Excel воспринимать ячейку как чистый текст
                         html += '<td style="border:1px solid #dee2e6; mso-number-format:\'\\@\';">' + cells[j].innerText + '</td>';
                     }
                     html += '</tr>';
@@ -901,7 +946,7 @@
         }
 
         // ============================================================
-        // СИСТЕМА ИМПОРТА – УНИВЕРСАЛЬНЫЙ ПАРСЕР
+        // СИСТЕМА ИМПОРТА
         // ============================================================
         const fieldSynonyms = {
             objectName: ['Объект', 'Наименование объекта'],
@@ -1105,7 +1150,6 @@
                 }
             }
             dbList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-            // Обновляем таблицу только если мы не в процессе редактирования
             if(!isInlineEditing) {
                 renderAll();
             }

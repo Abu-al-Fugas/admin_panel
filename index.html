@@ -66,8 +66,8 @@
         .controls { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; background: var(--container-bg); padding: 6px; border-radius: 4px; box-shadow: var(--shadow); align-items: center;}
         .filters { display: flex; gap: 4px; flex-wrap: wrap; align-items: center;}
         
-        button.btn { padding: 6px 12px; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85rem; color: white; font-weight: 500; transition: 0.2s;}
-        .btn-primary { background-color: var(--primary-color); } .btn-danger { background-color: var(--danger-color); } .btn-success { background-color: var(--success-color); } .btn-warning { background-color: var(--warning-color); color: #000; }
+        button.btn { padding: 6px 12px; border: none; border-radius: 3px; cursor: pointer; font-size: 0.85rem; color: white; font-weight: 500; transition: 0.2s; margin-right: 2px;}
+        .btn-primary { background-color: var(--primary-color); } .btn-danger { background-color: var(--danger-color); } .btn-success { background-color: var(--success-color); } .btn-warning { background-color: var(--warning-color); color: #000; } .btn-secondary { background-color: var(--text-muted); }
         .btn-small { padding: 3px 8px; font-size: 0.75rem; }
         .btn:hover { opacity: 0.9; }
         
@@ -76,12 +76,19 @@
         
         .table-responsive { width: 100%; overflow-x: auto; background: var(--container-bg); border-radius: 4px; box-shadow: var(--shadow); -webkit-overflow-scrolling: touch;}
         table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
-        th, td { padding: 4px 5px; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
-        th { background-color: var(--header-bg); color: white; font-weight: 500; cursor: pointer; user-select: none; position: sticky; top: 0; z-index: 10; }
+        
+        /* Ширина столбцов под контент, без переноса текста */
+        th, td { padding: 4px 5px; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; white-space: nowrap; }
+        th { background-color: var(--header-bg); color: white; font-weight: 500; cursor: pointer; user-select: none; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
         th:hover { background-color: #343a40; }
         tr:hover { background-color: var(--table-hover); }
         .text-right { text-align: right; }
         .text-center { text-align: center; }
+        
+        /* Стили для чекбоксов таблицы и иконок сортировки */
+        .row-checkbox, #selectAllCheckbox { cursor: pointer; width: 15px; height: 15px; margin: 0; }
+        .sort-icon { display: inline-block; width: 12px; font-size: 0.7rem; color: #ffc107; margin-left: 3px;}
+        .inline-edit-input { width: 100%; padding: 4px; font-size: 0.75rem; border: 1px solid var(--primary-color); border-radius: 2px; }
 
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 8px; margin-bottom: 12px; }
         .stat-card { background: var(--container-bg); padding: 8px; border-radius: 4px; box-shadow: var(--shadow); text-align: center; }
@@ -90,20 +97,27 @@
 
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; justify-content: center; align-items: center; overflow-y: auto; padding: 20px; }
         .modal-overlay.active { display: flex; }
-        .modal { background: var(--container-bg); padding: 16px; border-radius: 4px; width: 95%; max-width: 700px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); max-height: 90vh; display: flex; flex-direction: column; }
+        .modal { background: var(--container-bg); padding: 16px; border-radius: 4px; width: 95%; max-width: 900px; box-shadow: 0 5px 15px rgba(0,0,0,0.3); max-height: 90vh; display: flex; flex-direction: column; }
         .modal-header { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 1.05rem; font-weight: bold; }
         .modal-close { background: none; border: none; font-size: 1.4rem; cursor: pointer; color: var(--text-muted); line-height: 1; padding: 0;}
         .modal-body { overflow-y: auto; padding-right: 4px; flex: 1; }
         .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); }
         
-        /* Новые стили для grouped form */
-        .form-section { margin-bottom: 18px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
-        .form-section:last-child { border-bottom: none; margin-bottom: 0; }
+        /* Новая сетка модального окна на 2 колонки */
+        .modal-body-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        .modal-col { display: flex; flex-direction: column; gap: 15px; }
+        .form-section { padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
+        .form-section:last-child { border-bottom: none; }
         .form-section h4 { margin: 0 0 8px 0; font-size: 0.95rem; color: var(--primary-color); display: flex; align-items: center; gap: 6px; }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .form-grid { display: grid; grid-template-columns: 1fr; gap: 8px; }
         .form-group { display: flex; flex-direction: column; gap: 2px; }
         .form-group label { font-weight: 500; font-size: 0.8rem; }
         .form-group input, .form-group select { width: 100%; }
+        
+        /* Группа для инпута и селекта вместе */
+        .input-with-select { display: flex; gap: 5px; }
+        .input-with-select input { flex: 1; }
+        .input-with-select select { width: 45px; padding: 0; text-align: center; cursor: pointer; }
 
         #loadingOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background:var(--header-bg); z-index:9999; display:flex; flex-direction: column; justify-content:center; align-items:center; color:white; font-size:1rem; font-weight:bold; }
         
@@ -113,12 +127,11 @@
             .header-dummy { display: none; }
             nav { justify-content: space-between; width: 100%;}
             nav button { flex: 1; padding: 6px 2px; text-align: center; font-size: 0.7rem;}
-            .controls { flex-direction: column; padding: 6px; gap: 8px;}
+            .controls { flex-direction: column; padding: 6px; gap: 8px; align-items: stretch;}
             .filters { flex-direction: column; width: 100%; gap: 4px; }
             .filters input, .filters select { width: 100%; }
-            .form-grid { grid-template-columns: 1fr; }
+            .modal-body-grid { grid-template-columns: 1fr; gap: 0; }
             table { font-size: 0.65rem; }
-            th, td { padding: 3px 3px; max-width: 80px; }
         }
     </style>
 </head>
@@ -167,7 +180,14 @@
 
         <section id="fullTable" class="tab-content">
             <div class="controls">
-                <div style="font-size: 0.85rem; color: var(--text-muted);">Нажмите на заголовок для сортировки</div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); display:flex; flex-direction:column; gap:4px;">
+                    <div>Нажмите на заголовок для сортировки.</div>
+                    <div id="inlineEditControls">
+                        <button class="btn btn-warning" id="btnInlineEdit" onclick="toggleInlineEdit()">✎ Групповая правка</button>
+                        <button class="btn btn-success" id="btnInlineSave" onclick="saveInlineEdit()" style="display:none;">💾 Сохранить правки</button>
+                        <button class="btn btn-secondary" id="btnInlineCancel" onclick="cancelInlineEdit()" style="display:none;">✕ Отмена</button>
+                    </div>
+                </div>
                 <div>
                     <button class="btn btn-success" onclick="exportToExcel()">📥 Выгрузить в Excel</button>
                     <button class="btn btn-primary" onclick="refreshTable()">🔄 Обновить</button>
@@ -177,20 +197,21 @@
                 <table id="dataTable">
                     <thead>
                         <tr>
-                            <th onclick="sortTable(0)">Монтажник</th>
-                            <th onclick="sortTable(1)">Объект</th>
-                            <th onclick="sortTable(2)">Адрес</th>
-                            <th onclick="sortTable(3)">Расположение</th>
-                            <th onclick="sortTable(4)">Мощн. (м³/ч)</th>
-                            <th onclick="sortTable(5)">Модель</th>
-                            <th onclick="sortTable(6)">№</th>
-                            <th onclick="sortTable(7)">Пломба</th>
-                            <th onclick="sortTable(8)">Ст. модель</th>
-                            <th onclick="sortTable(9)">Ст. №</th>
-                            <th onclick="sortTable(10)">Ст. показ.</th>
-                            <th onclick="sortTable(11)">Направл.</th>
-                            <th onclick="sortTable(12)">SIM</th>
-                            <th onclick="sortTable(13)">Дата</th>
+                            <th class="text-center" style="width: 30px;"><input type="checkbox" id="selectAllCheckbox" onclick="toggleAllCheckboxes()"></th>
+                            <th onclick="sortTable(1)">Монтажник <span class="sort-icon" id="sort-1"></span></th>
+                            <th onclick="sortTable(2)">Объект <span class="sort-icon" id="sort-2"></span></th>
+                            <th onclick="sortTable(3)">Адрес <span class="sort-icon" id="sort-3"></span></th>
+                            <th onclick="sortTable(4)">Расположение <span class="sort-icon" id="sort-4"></span></th>
+                            <th onclick="sortTable(5, 'number')">Мощн. (м³/ч) <span class="sort-icon" id="sort-5"></span></th>
+                            <th onclick="sortTable(6)">Модель <span class="sort-icon" id="sort-6"></span></th>
+                            <th onclick="sortTable(7)">№ <span class="sort-icon" id="sort-7"></span></th>
+                            <th onclick="sortTable(8)">Пломба <span class="sort-icon" id="sort-8"></span></th>
+                            <th onclick="sortTable(9)">Ст. модель <span class="sort-icon" id="sort-9"></span></th>
+                            <th onclick="sortTable(10)">Ст. № <span class="sort-icon" id="sort-10"></span></th>
+                            <th onclick="sortTable(11)">Ст. показ. <span class="sort-icon" id="sort-11"></span></th>
+                            <th onclick="sortTable(12)">Направл. <span class="sort-icon" id="sort-12"></span></th>
+                            <th onclick="sortTable(13)">SIM <span class="sort-icon" id="sort-13"></span></th>
+                            <th onclick="sortTable(14, 'date')">Дата <span class="sort-icon" id="sort-14"></span></th>
                             <th class="text-center">Действия</th>
                         </tr>
                     </thead>
@@ -201,75 +222,123 @@
     </main>
 
     <footer>
-        <button class="footer-btn" onclick="toggleTheme()">🌓 Сменить тему</button>
+        <button class="footer-btn" onclick="toggleTheme()" style="margin:10px; padding:6px; border-radius:4px; border:none; cursor:pointer;">🌓 Сменить тему</button>
     </footer>
 
-    <!-- Модальное окно редактирования / добавления -->
     <div class="modal-overlay" id="editModal">
         <div class="modal">
             <div class="modal-header"><span id="editTitle">Редактирование записи</span><button class="modal-close" onclick="closeModal('editModal')">&times;</button></div>
             <div class="modal-body" id="editBody">
                 <form id="editForm">
-                    <!-- Группа: Информация об объекте -->
-                    <div class="form-section">
-                        <h4>📍 Информация об объекте</h4>
-                        <div class="form-grid">
-                            <div class="form-group"><label>Объект</label><input type="text" id="e_objectName" placeholder="Например: Пекарня"></div>
-                            <div class="form-group"><label>Адрес</label><input type="text" id="e_address" placeholder="Улица, дом"></div>
-                            <div class="form-group"><label>Расположение счетчика</label><input type="text" id="e_uirgLocation" placeholder="Улица / Котельная / ..."></div>
-                        </div>
-                    </div>
+                    <div class="modal-body-grid">
+                        
+                        <div class="modal-col">
+                            <div class="form-section">
+                                <h4>📍 Информация об объекте</h4>
+                                <div class="form-grid">
+                                    <div class="form-group"><label>Объект</label><input type="text" id="e_objectName" placeholder="Например: Пекарня"></div>
+                                    <div class="form-group"><label>Адрес</label><input type="text" id="e_address" placeholder="Улица, дом"></div>
+                                    <div class="form-group"><label>Расположение счетчика</label>
+                                        <div class="input-with-select">
+                                            <input type="text" id="e_uirgLocation" placeholder="Улица / Котельная / ...">
+                                            <select onchange="document.getElementById('e_uirgLocation').value = this.value; this.selectedIndex = 0;">
+                                                <option value="" disabled selected>▼</option>
+                                                <option value="Улица">Улица</option>
+                                                <option value="Котельная">Котельная</option>
+                                                <option value="Под навесом">Под навесом</option>
+                                                <option value="В помещении">В помещении</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
 
-                    <!-- Группа: Потребитель -->
-                    <div class="form-section">
-                        <h4>👤 Потребитель</h4>
-                        <div class="form-grid">
-                            <div class="form-group"><label>Должность</label><input type="text" id="e_position" placeholder="Собственник, директор..."></div>
-                            <div class="form-group"><label>ФИО</label><input type="text" id="e_consumer" placeholder="Иванов И.И."></div>
-                            <div class="form-group"><label>Лицевой счет</label><input type="text" id="e_ls" placeholder="Номер ЛС"></div>
-                        </div>
-                    </div>
+                            <div class="form-section">
+                                <h4>🔄 Старый счетчик</h4>
+                                <div class="form-grid">
+                                    <div class="form-group"><label>Модель</label>
+                                        <div class="input-with-select">
+                                            <input type="text" id="e_oldMeterModel" placeholder="Модель">
+                                            <select onchange="document.getElementById('e_oldMeterModel').value = this.value; this.selectedIndex = 0;">
+                                                <option value="" disabled selected>▼</option>
+                                                <option value="СГМН-1 G6">СГМН-1 G6</option>
+                                                <option value="СГМН-МТ1 G6">СГМН-МТ1 G6</option>
+                                                <option value="BK-G6">BK-G6</option>
+                                                <option value="BK-G10">BK-G10</option>
+                                                <option value="BK-G16">BK-G16</option>
+                                                <option value="BK-G25">BK-G25</option>
+                                                <option value="BK-G40">BK-G40</option>
+                                                <option value="BK-G65">BK-G65</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group"><label>Заводской №</label><input type="text" id="e_oldMeterSerial" placeholder="Номер старого"></div>
+                                    <div class="form-group"><label>Показания</label><input type="text" id="e_oldMeterReadings" placeholder="Показания"></div>
+                                </div>
+                            </div>
 
-                    <!-- Группа: Монтажник -->
-                    <div class="form-section">
-                        <h4>🔧 Монтажник</h4>
-                        <div class="form-grid">
-                            <div class="form-group"><label>ФИО монтажника</label><input type="text" id="e_installer" placeholder="Петров П.П."></div>
-                        </div>
-                    </div>
+                            <div class="form-section">
+                                <h4>🔧 Монтажник</h4>
+                                <div class="form-grid">
+                                    <div class="form-group"><label>ФИО монтажника</label><input type="text" id="e_installer" placeholder="Петров П.П."></div>
+                                </div>
+                            </div>
 
-                    <!-- Группа: Старый счетчик -->
-                    <div class="form-section">
-                        <h4>🔄 Старый счетчик</h4>
-                        <div class="form-grid">
-                            <div class="form-group"><label>Модель</label><input type="text" id="e_oldMeterModel" placeholder="СГМН-1 G6"></div>
-                            <div class="form-group"><label>Заводской №</label><input type="text" id="e_oldMeterSerial" placeholder="Номер старого"></div>
-                            <div class="form-group"><label>Показания</label><input type="text" id="e_oldMeterReadings" placeholder="Показания"></div>
-                        </div>
-                    </div>
+                            <div class="form-section">
+                                <h4>📌 Дополнительно</h4>
+                                <div class="form-grid">
+                                    <div class="form-group"><label>GPS</label><input type="text" id="e_gps" placeholder="43.300058, 45.684476"></div>
+                                    <div class="form-group"><label>Дата</label><input type="text" id="e_date" placeholder="30.06.2026, 20:43"></div>
+                                </div>
+                            </div>
+                        </div> <div class="modal-col">
+                            <div class="form-section">
+                                <h4>👤 Потребитель</h4>
+                                <div class="form-grid">
+                                    <div class="form-group"><label>Должность</label><input type="text" id="e_position" placeholder="Собственник, директор..."></div>
+                                    <div class="form-group"><label>ФИО</label><input type="text" id="e_consumer" placeholder="Иванов И.И."></div>
+                                    <div class="form-group"><label>Лицевой счет</label><input type="text" id="e_ls" placeholder="Номер ЛС"></div>
+                                </div>
+                            </div>
 
-                    <!-- Группа: Новый счетчик -->
-                    <div class="form-section">
-                        <h4>🆕 Новый счетчик</h4>
-                        <div class="form-grid">
-                            <div class="form-group"><label>Модель</label><input type="text" id="e_model" placeholder="CMT-Смарт G6"></div>
-                            <div class="form-group"><label>Серийный №</label><input type="text" id="e_serial" placeholder="Номер нового"></div>
-                            <div class="form-group"><label>Мощность (м³/ч)</label><input type="text" id="e_totalPower" placeholder="Например: 11.6"></div>
-                            <div class="form-group"><label>Пломба контролера</label><input type="text" id="e_controllerSeal" placeholder="Номер пломбы"></div>
-                            <div class="form-group"><label>Направление</label><input type="text" id="e_newGasDirection" placeholder="сверху-вниз / слева-направо"></div>
-                            <div class="form-group"><label>№ SIM</label><input type="text" id="e_simCardNumber" placeholder="Номер SIM-карты"></div>
-                        </div>
-                    </div>
-
-                    <!-- Группа: Дополнительно -->
-                    <div class="form-section">
-                        <h4>📌 Дополнительно</h4>
-                        <div class="form-grid">
-                            <div class="form-group"><label>GPS</label><input type="text" id="e_gps" placeholder="43.300058, 45.684476"></div>
-                            <div class="form-group"><label>Дата</label><input type="text" id="e_date" placeholder="30.06.2026, 20:43"></div>
-                        </div>
-                    </div>
-
+                            <div class="form-section">
+                                <h4>🆕 Новый счетчик</h4>
+                                <div class="form-grid">
+                                    <div class="form-group"><label>Модель</label>
+                                        <div class="input-with-select">
+                                            <input type="text" id="e_model" placeholder="Модель">
+                                            <select onchange="document.getElementById('e_model').value = this.value; this.selectedIndex = 0;">
+                                                <option value="" disabled selected>▼</option>
+                                                <option value="СМТ-Смарт G4">СМТ-Смарт G4</option>
+                                                <option value="СМТ-Смарт G6">СМТ-Смарт G6</option>
+                                                <option value="СМТ-Смарт G10">СМТ-Смарт G10</option>
+                                                <option value="СМТ- Комплекс G16">СМТ- Комплекс G16</option>
+                                                <option value="СМТ- Комплекс G25">СМТ- Комплекс G25</option>
+                                                <option value="СМТ- Комплекс G40">СМТ- Комплекс G40</option>
+                                                <option value="СМТ- Комплекс G65">СМТ- Комплекс G65</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group"><label>Серийный №</label><input type="text" id="e_serial" placeholder="Номер нового"></div>
+                                    <div class="form-group"><label>Мощность (м³/ч)</label><input type="text" id="e_totalPower" placeholder="Например: 11.6"></div>
+                                    <div class="form-group"><label>Пломба контролера</label><input type="text" id="e_controllerSeal" placeholder="Номер пломбы"></div>
+                                    
+                                    <div class="form-group"><label>Направление</label>
+                                        <div class="input-with-select">
+                                            <input type="text" id="e_newGasDirection" placeholder="Направление">
+                                            <select onchange="document.getElementById('e_newGasDirection').value = this.value; this.selectedIndex = 0;">
+                                                <option value="" disabled selected>▼</option>
+                                                <option value="сверху-вниз">сверху-вниз</option>
+                                                <option value="снизу-вверх">снизу-вверх</option>
+                                                <option value="справа-налево">справа-налево</option>
+                                                <option value="слева-направо">слева-направо</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group"><label>№ SIM</label><input type="text" id="e_simCardNumber" placeholder="Номер SIM-карты"></div>
+                                </div>
+                            </div>
+                        </div> </div>
                     <input type="hidden" id="e_recordId">
                 </form>
             </div>
@@ -281,7 +350,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно детализации -->
     <div class="modal-overlay" id="detailsModal">
         <div class="modal" style="max-width: 600px;">
             <div class="modal-header"><span id="detailsTitle">Детализация</span><button class="modal-close" onclick="closeModal('detailsModal')">&times;</button></div>
@@ -290,7 +358,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно импорта -->
     <div class="modal-overlay" id="importModal">
         <div class="modal" style="max-width: 800px;">
             <div class="modal-header"><span>Импорт установок из текста</span><button class="modal-close" onclick="closeModal('importModal')">&times;</button></div>
@@ -311,7 +378,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно подтверждения удаления всех -->
     <div class="modal-overlay" id="confirmDeleteModal">
         <div class="modal" style="max-width: 450px;">
             <div class="modal-header"><span>⚠️ Удалить все записи?</span><button class="modal-close" onclick="closeModal('confirmDeleteModal')">&times;</button></div>
@@ -345,10 +411,19 @@
 
         let dbList = [];
         let sortDirection = {};
+        let isInlineEditing = false; // Флаг режима группового редактирования
 
         // ===== UI =====
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
         function openModal(id) { document.getElementById(id).classList.add('active'); }
+
+        // Защита от закрытия окна редактирования по клику мимо
+        document.querySelectorAll('.modal-overlay').forEach(el => {
+            el.addEventListener('click', (e) => {
+                if (el.id === 'editModal') return; // Игнорируем клик по фону для окна редактирования
+                if (e.target === el) closeModal(el.id);
+            });
+        });
 
         // ===== Статистика =====
         function renderStats() {
@@ -359,13 +434,11 @@
             dbList.forEach(i => { if(i.model) models[i.model] = (models[i.model]||0)+1; });
             const topModel = Object.entries(models).sort((a,b)=>b[1]-a[1])[0];
 
-            // Подсчет "сегодня" с 7:00
             const now = new Date();
-            const todayStart = new Date(now);
-            todayStart.setHours(7, 0, 0, 0);
-            const todayEnd = new Date(now);
-            todayEnd.setHours(23, 59, 59, 999);
+            const todayStart = new Date(now); todayStart.setHours(7, 0, 0, 0);
+            const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999);
             let todayCount = 0;
+            
             dbList.forEach(item => {
                 if (!item.date) return;
                 const parts = item.date.split(',');
@@ -427,7 +500,6 @@
             renderStats();
         }
 
-        // ===== Детализация =====
         function showDetails(installerName) {
             const filterMonth = document.getElementById('filterMonth').value;
             let records = dbList.filter(item => item.installer === installerName);
@@ -470,7 +542,6 @@
             openModal('detailsModal');
         }
 
-        // ===== Массовое переименование монтажника =====
         function editInstaller(installer) {
             if (!confirm(`Редактировать все записи монтажника "${installer}"? Это изменит поле "Монтажник" для всех его установок.`)) return;
             const newName = prompt('Введите новое имя монтажника:', installer);
@@ -494,31 +565,35 @@
 
         // ===== Таблица =====
         function renderFullTable() {
+            if (isInlineEditing) return; // Не обновлять таблицу, если мы в режиме редактирования
             const tbody = document.getElementById('fullTableBody');
+            document.getElementById('selectAllCheckbox').checked = false; // Сброс чекбокса "Выбрать всё"
+            
             let html = '';
             dbList.forEach(item => {
                 html += `<tr>
-                    <td><b>${item.installer || '-'}</b></td>
-                    <td>${item.objectName || '-'}</td>
-                    <td title="${item.address || '-'}">${item.address || '-'}</td>
-                    <td>${item.uirgLocation || '-'}</td>
-                    <td>${item.totalPower || '-'}</td>
-                    <td><b>${item.model || '-'}</b></td>
-                    <td>${item.serial || '-'}</td>
-                    <td>${item.controllerSeal || '-'}</td>
-                    <td>${item.oldMeterModel || '-'}</td>
-                    <td>${item.oldMeterSerial || '-'}</td>
-                    <td>${item.oldMeterReadings || '-'}</td>
-                    <td>${item.newGasDirection || '-'}</td>
-                    <td>${item.simCardNumber || '-'}</td>
-                    <td>${item.date || '-'}</td>
-                    <td class="text-center">
-                        <button class="btn btn-primary btn-small" onclick="editRecord('${item.id}')" title="Редактировать">✎</button>
-                        <button class="btn btn-danger btn-small" onclick="deleteRecord('${item.id}')" title="Удалить">✕</button>
+                    <td class="text-center"><input type="checkbox" class="row-checkbox" value="${item.id}"></td>
+                    <td data-field="installer"><b>${item.installer || '-'}</b></td>
+                    <td data-field="objectName">${item.objectName || '-'}</td>
+                    <td data-field="address" title="${item.address || '-'}">${item.address || '-'}</td>
+                    <td data-field="uirgLocation">${item.uirgLocation || '-'}</td>
+                    <td data-field="totalPower">${item.totalPower || '-'}</td>
+                    <td data-field="model"><b>${item.model || '-'}</b></td>
+                    <td data-field="serial">${item.serial || '-'}</td>
+                    <td data-field="controllerSeal">${item.controllerSeal || '-'}</td>
+                    <td data-field="oldMeterModel">${item.oldMeterModel || '-'}</td>
+                    <td data-field="oldMeterSerial">${item.oldMeterSerial || '-'}</td>
+                    <td data-field="oldMeterReadings">${item.oldMeterReadings || '-'}</td>
+                    <td data-field="newGasDirection">${item.newGasDirection || '-'}</td>
+                    <td data-field="simCardNumber">${item.simCardNumber || '-'}</td>
+                    <td data-field="date">${item.date || '-'}</td>
+                    <td class="text-center" style="white-space: nowrap;">
+                        <button class="btn btn-primary btn-small edit-single-btn" onclick="editRecord('${item.id}')" title="Редактировать">✎</button>
+                        <button class="btn btn-danger btn-small del-single-btn" onclick="deleteRecord('${item.id}')" title="Удалить">✕</button>
                     </td>
                 </tr>`;
             });
-            if (html === '') html = '<tr><td colspan="15" style="text-align:center; padding:20px;">Нет записей</td></tr>';
+            if (html === '') html = '<tr><td colspan="16" style="text-align:center; padding:20px;">Нет записей</td></tr>';
             tbody.innerHTML = html;
         }
 
@@ -526,24 +601,116 @@
             renderFullTable();
         }
 
-        // ===== Удаление =====
+        // ===== Групповое редактирование =====
+        function toggleAllCheckboxes() {
+            const isChecked = document.getElementById('selectAllCheckbox').checked;
+            document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = isChecked);
+        }
+
+        function toggleInlineEdit() {
+            const checkboxes = document.querySelectorAll('.row-checkbox:checked');
+            if (checkboxes.length === 0) return alert('Сначала выберите строки для редактирования, отметив их галочками слева.');
+
+            if (!isInlineEditing) {
+                checkboxes.forEach(cb => {
+                    let tr = cb.closest('tr');
+                    tr.classList.add('editing-row');
+                    tr.style.backgroundColor = '#fff3cd'; // Подсветка редактируемой строки
+                    
+                    // Заменяем текст на инпуты, исключая колонки с чекбоксами и кнопками
+                    tr.querySelectorAll('td[data-field]').forEach(td => {
+                        let field = td.getAttribute('data-field');
+                        let val = td.innerText === '-' ? '' : td.innerText;
+                        td.innerHTML = `<input type="text" class="inline-edit-input" data-field="${field}" value="${val.replace(/"/g, '&quot;')}">`;
+                    });
+                    
+                    // Прячем кнопки действий для этой строки
+                    tr.querySelector('.edit-single-btn').style.display = 'none';
+                    tr.querySelector('.del-single-btn').style.display = 'none';
+                });
+                
+                document.getElementById('btnInlineEdit').style.display = 'none';
+                document.getElementById('btnInlineSave').style.display = 'inline-block';
+                document.getElementById('btnInlineCancel').style.display = 'inline-block';
+                isInlineEditing = true;
+            }
+        }
+
+        function cancelInlineEdit() {
+            isInlineEditing = false;
+            document.getElementById('btnInlineEdit').style.display = 'inline-block';
+            document.getElementById('btnInlineSave').style.display = 'none';
+            document.getElementById('btnInlineCancel').style.display = 'none';
+            renderFullTable(); // Сброс таблицы к исходному состоянию
+        }
+
+        function saveInlineEdit() {
+            const rows = document.querySelectorAll('tr.editing-row');
+            let updates = {};
+            
+            rows.forEach(tr => {
+                let id = tr.querySelector('.row-checkbox').value;
+                let inputs = tr.querySelectorAll('.inline-edit-input');
+                let updateData = {};
+                
+                inputs.forEach(inp => {
+                    let field = inp.getAttribute('data-field');
+                    updateData[field] = inp.value.trim();
+                });
+                
+                // Берем оригинальные данные и сливаем с новыми
+                let item = dbList.find(i => i.id === id);
+                if(item) {
+                    updates[id] = { ...item, ...updateData };
+                }
+            });
+
+            if (Object.keys(updates).length === 0) return cancelInlineEdit();
+
+            document.getElementById('btnInlineSave').innerText = '⏳ Сохраняем...';
+            
+            const promises = Object.entries(updates).map(([id, data]) => dbRef.child(id).update(data));
+            Promise.all(promises).then(() => {
+                isInlineEditing = false;
+                document.getElementById('btnInlineEdit').style.display = 'inline-block';
+                document.getElementById('btnInlineSave').style.display = 'none';
+                document.getElementById('btnInlineSave').innerText = '💾 Сохранить правки';
+                document.getElementById('btnInlineCancel').style.display = 'none';
+                // Данные обновятся сами через лисенер on('value')
+                alert('Изменения успешно сохранены!');
+            }).catch(e => {
+                alert('Ошибка: ' + e.message);
+                document.getElementById('btnInlineSave').innerText = '💾 Сохранить правки';
+            });
+        }
+
+        // ===== Удаление (с подтверждением слова "удалить") =====
         function deleteRecord(id) {
-            if (confirm('Удалить запись?')) {
+            let pr = prompt('Вы точно хотите удалить запись? Введите слово "удалить" для подтверждения:');
+            if (pr && pr.trim().toLowerCase() === 'удалить') {
                 dbRef.child(id).remove().catch(e => alert('Ошибка: ' + e.message));
+            } else if (pr !== null) {
+                alert('Отмена: проверочное слово введено неверно.');
             }
         }
 
         function deleteRecordFromEdit() {
             const id = document.getElementById('e_recordId').value;
-            if (id && confirm('Удалить эту запись?')) {
-                dbRef.child(id).remove().then(() => {
-                    closeModal('editModal');
-                }).catch(e => alert('Ошибка: ' + e.message));
+            if (id) {
+                let pr = prompt('Удалить эту запись? Введите слово "удалить" для подтверждения:');
+                if (pr && pr.trim().toLowerCase() === 'удалить') {
+                    dbRef.child(id).remove().then(() => {
+                        closeModal('editModal');
+                    }).catch(e => alert('Ошибка: ' + e.message));
+                } else if (pr !== null) {
+                    alert('Отмена: проверочное слово введено неверно.');
+                }
             }
         }
 
         // ===== Редактирование =====
         function editRecord(id) {
+            if(isInlineEditing) return alert('Сначала завершите групповую правку.');
             const item = dbList.find(i => i.id === id);
             if (!item) return alert('Запись не найдена');
             fillEditForm(item);
@@ -608,8 +775,8 @@
             }
         }
 
-        // ===== Добавление новой записи =====
         function openAddRecordModal() {
+            if(isInlineEditing) return alert('Сначала завершите групповую правку.');
             document.getElementById('e_recordId').value = '';
             document.getElementById('deleteBtn').style.display = 'none';
             document.getElementById('editTitle').innerText = '➕ Добавление новой установки';
@@ -622,7 +789,6 @@
             document.getElementById('e_installer').value = installer;
         }
 
-        // ===== Удаление всего =====
         function confirmDeleteAll() {
             document.getElementById('deleteConfirmInput').value = '';
             openModal('confirmDeleteModal');
@@ -641,25 +807,64 @@
             }).catch(e => alert('Ошибка удаления: ' + e.message));
         }
 
-        // ===== Сортировка =====
-        function sortTable(n) {
+        // ===== Улучшенная сортировка =====
+        function sortTable(n, type = 'string') {
+            if(isInlineEditing) return alert('Сортировка недоступна во время редактирования.');
+            
             const table = document.getElementById("dataTable");
             const tbody = table.querySelector('tbody');
             const rows = Array.from(tbody.querySelectorAll('tr'));
             if (rows.length === 0) return;
+
+            // Очистка всех иконок сортировки
+            document.querySelectorAll('.sort-icon').forEach(icon => icon.innerText = '');
+
             const dir = sortDirection[n] === "asc" ? "desc" : "asc";
             sortDirection[n] = dir;
+            
+            // Установка иконки на текущую колонку
+            const currentIcon = document.getElementById(`sort-${n}`);
+            if (currentIcon) {
+                currentIcon.innerText = dir === 'asc' ? '▲' : '▼';
+            }
 
             rows.sort((a, b) => {
-                const x = a.querySelectorAll('td')[n]?.innerText?.toLowerCase() || '';
-                const y = b.querySelectorAll('td')[n]?.innerText?.toLowerCase() || '';
-                if (dir === "asc") return x.localeCompare(y);
-                else return y.localeCompare(x);
+                let x = a.querySelectorAll('td')[n]?.innerText?.toLowerCase() || '';
+                let y = b.querySelectorAll('td')[n]?.innerText?.toLowerCase() || '';
+
+                if (type === 'date') {
+                    // Парсинг кастомной даты: 30.06.2026, 20:43
+                    let parseDate = str => {
+                        if (!str || str === '-') return 0;
+                        let parts = str.split(',');
+                        let d = parts[0] ? parts[0].trim() : '';
+                        let t = parts[1] ? parts[1].trim() : '00:00';
+                        
+                        let dParts = d.split('.');
+                        if(dParts.length !== 3) return 0;
+                        let tParts = t.split(':');
+                        
+                        // Месяц начинается с 0 в JS Date
+                        return new Date(dParts[2], parseInt(dParts[1])-1, dParts[0], tParts[0], tParts[1]).getTime();
+                    };
+                    
+                    let timeX = parseDate(x);
+                    let timeY = parseDate(y);
+                    return dir === 'asc' ? timeX - timeY : timeY - timeX;
+
+                } else if (type === 'number') {
+                    let numX = parseFloat(x.replace(',','.')) || 0;
+                    let numY = parseFloat(y.replace(',','.')) || 0;
+                    return dir === 'asc' ? numX - numY : numY - numX;
+                } else {
+                    if (dir === "asc") return x.localeCompare(y);
+                    else return y.localeCompare(x);
+                }
             });
             rows.forEach(row => tbody.appendChild(row));
         }
 
-        // ===== Экспорт Excel =====
+        // ===== Экспорт Excel (Исправленный формат текста) =====
         function exportToExcel() {
             let table = document.getElementById("dataTable");
             if (!table || dbList.length === 0) { alert("Нет данных"); return; }
@@ -667,8 +872,9 @@
             html += '<head><meta charset="utf-8"></head><body><table>';
             let headers = table.querySelectorAll("thead th");
             html += '<tr>';
-            for (let j = 0; j < headers.length - 1; j++) {
-                let text = headers[j].innerText.replace(" ↕", "");
+            // Пропускаем 0-й столбец (чекбоксы) и последний (действия)
+            for (let j = 1; j < headers.length - 1; j++) {
+                let text = headers[j].innerText.replace(" ▼", "").replace(" ▲", "");
                 html += '<th style="background:#212529;color:#fff;border:1px solid #dee2e6;">' + text + '</th>';
             }
             html += '</tr>';
@@ -677,8 +883,9 @@
                 let cells = row.querySelectorAll("td");
                 if (cells.length > 1) {
                     html += '<tr>';
-                    for (let j = 0; j < cells.length - 1; j++) {
-                        html += '<td style="border:1px solid #dee2e6;">' + cells[j].innerText + '</td>';
+                    for (let j = 1; j < cells.length - 1; j++) {
+                        // mso-number-format:'\@' заставляет Excel воспринимать ячейку как чистый текст
+                        html += '<td style="border:1px solid #dee2e6; mso-number-format:\'\\@\';">' + cells[j].innerText + '</td>';
                     }
                     html += '</tr>';
                 }
@@ -694,10 +901,8 @@
         }
 
         // ============================================================
-        // НОВАЯ СИСТЕМА ИМПОРТА – УНИВЕРСАЛЬНЫЙ ПАРСЕР (исправленная)
+        // СИСТЕМА ИМПОРТА – УНИВЕРСАЛЬНЫЙ ПАРСЕР
         // ============================================================
-
-        // Синонимы полей (ключ – имя поля в итоговом объекте, значение – массив возможных названий)
         const fieldSynonyms = {
             objectName: ['Объект', 'Наименование объекта'],
             address: ['Адрес', 'Адрес объекта'],
@@ -719,7 +924,6 @@
             totalPower: ['Мощность']
         };
 
-        // Маппинг первых цифр серийного номера -> модель
         const modelByPrefix = {
             '561': 'CMT-Смарт G4',
             '562': 'CMT-Смарт G6',
@@ -730,32 +934,17 @@
             '208': 'CMT- Комплекс G65'
         };
 
-        /**
-         * Разбивает текст на отдельные блоки (записи) – улучшенная версия
-         */
         function splitIntoRecords(text) {
             const lines = text.split('\n');
             const records = [];
             let currentBlock = [];
-            let inRecord = false;
-
-            // Паттерны, которые могут начинать новую запись
-            const startPatterns = [
-                /^\*\*\d+\.\s*message/i,
-                /^Отчет о проделанных работах/i,
-                /^•\s*Объект:/i,
-                /^Объект:/i,
-                /^Наименование объекта:/i
-            ];
+            const startPatterns = [ /^\*\*\d+\.\s*message/i, /^Отчет о проделанных работах/i, /^•\s*Объект:/i, /^Объект:/i, /^Наименование объекта:/i ];
 
             for (let line of lines) {
                 const trimmed = line.trim();
                 let isStart = false;
                 for (let pattern of startPatterns) {
-                    if (pattern.test(trimmed)) {
-                        isStart = true;
-                        break;
-                    }
+                    if (pattern.test(trimmed)) { isStart = true; break; }
                 }
                 if (isStart && currentBlock.length > 0) {
                     records.push(currentBlock.join('\n'));
@@ -763,24 +952,17 @@
                 }
                 currentBlock.push(line);
             }
-            if (currentBlock.length > 0) {
-                records.push(currentBlock.join('\n'));
-            }
+            if (currentBlock.length > 0) records.push(currentBlock.join('\n'));
             return records;
         }
 
-        /**
-         * Универсальная функция поиска поля в блоке по списку синонимов.
-         */
         function findField(blockLines, synonyms) {
             for (let line of blockLines) {
                 for (let syn of synonyms) {
                     const escapedSyn = syn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
                     const regex = new RegExp(`${escapedSyn}\\s*[:.\\-]\\s*(.*)`, 'i');
                     const match = line.match(regex);
-                    if (match) {
-                        return match[1].trim();
-                    }
+                    if (match) return match[1].trim();
                 }
             }
             return null;
@@ -797,8 +979,7 @@
         function cleanSerial(serial) {
             if (!serial) return '';
             const parts = serial.split(';');
-            serial = parts[0].trim();
-            return serial.replace(/\D/g, '');
+            return parts[0].trim().replace(/\D/g, '');
         }
 
         function detectModelBySerial(serial) {
@@ -814,9 +995,7 @@
 
             for (let [field, synonyms] of Object.entries(fieldSynonyms)) {
                 const value = findField(lines, synonyms);
-                if (value) {
-                    record[field] = value;
-                }
+                if (value) record[field] = value;
             }
 
             if (!record.date) {
@@ -824,9 +1003,7 @@
                 if (dateVal) record.date = dateVal;
             }
 
-            if (record.serial) {
-                record.serial = cleanSerial(record.serial);
-            }
+            if (record.serial) record.serial = cleanSerial(record.serial);
 
             if (!record.model && record.serial) {
                 const detected = detectModelBySerial(record.serial);
@@ -834,25 +1011,17 @@
             }
 
             for (let key in record) {
-                if (record[key] === '' || record[key] === null) {
-                    delete record[key];
-                }
+                if (record[key] === '' || record[key] === null) delete record[key];
             }
 
-            if (!record.objectName && !record.installer) {
-                return null;
-            }
-
+            if (!record.objectName && !record.installer) return null;
             return record;
         }
 
         function importFromText() {
             const textarea = document.getElementById('importTextArea');
             const text = textarea.value;
-            if (!text.trim()) {
-                alert('Вставьте текст или загрузите файл.');
-                return;
-            }
+            if (!text.trim()) { alert('Вставьте текст или загрузите файл.'); return; }
 
             const status = document.getElementById('importStatus');
             status.innerHTML = '⏳ Обработка...';
@@ -866,23 +1035,17 @@
             blocks.forEach((block, index) => {
                 try {
                     const rec = extractRecord(block);
-                    if (rec) {
-                        extractedRecords.push(rec);
-                    } else {
-                        errors.push(`Блок #${index+1}: не удалось извлечь данные (нет объекта или монтажника)`);
-                    }
-                } catch (e) {
-                    errors.push(`Блок #${index+1}: ошибка парсинга – ${e.message}`);
-                }
+                    if (rec) extractedRecords.push(rec);
+                    else errors.push(`Блок #${index+1}: не удалось извлечь данные (нет объекта или монтажника)`);
+                } catch (e) { errors.push(`Блок #${index+1}: ошибка парсинга – ${e.message}`); }
             });
 
             const existingSerials = new Set(dbList.map(i => i.serial).filter(Boolean));
             const uniqueRecords = [];
             const duplicates = [];
             extractedRecords.forEach(rec => {
-                if (rec.serial && existingSerials.has(rec.serial)) {
-                    duplicates.push(rec);
-                } else {
+                if (rec.serial && existingSerials.has(rec.serial)) duplicates.push(rec);
+                else {
                     uniqueRecords.push(rec);
                     if (rec.serial) existingSerials.add(rec.serial);
                 }
@@ -901,21 +1064,12 @@
                 const totalDuplicates = duplicates.length;
                 const totalErrors = errors.length;
 
-                let report = `✅ Импорт завершён.\n`;
-                report += `Всего найдено записей: ${totalFound}\n`;
-                report += `Успешно извлечено: ${extractedRecords.length}\n`;
-                report += `Импортировано (уникальных): ${imported}\n`;
-                report += `Пропущено как дубликаты: ${totalDuplicates}\n`;
-                report += `Ошибок: ${totalErrors}\n`;
-                if (totalErrors > 0) {
-                    report += `\nСписок ошибок:\n${errors.map(e => '  • ' + e).join('\n')}`;
-                }
+                let report = `✅ Импорт завершён.\nВсего найдено записей: ${totalFound}\nУспешно извлечено: ${extractedRecords.length}\nИмпортировано (уникальных): ${imported}\nПропущено как дубликаты: ${totalDuplicates}\nОшибок: ${totalErrors}\n`;
+                if (totalErrors > 0) report += `\nСписок ошибок:\n${errors.map(e => '  • ' + e).join('\n')}`;
                 status.innerHTML = report.replace(/\n/g, '<br>');
                 status.style.color = 'var(--success-color)';
 
-                setTimeout(() => {
-                    closeModal('importModal');
-                }, 4000);
+                setTimeout(() => { closeModal('importModal'); }, 4000);
             });
         }
 
@@ -923,9 +1077,7 @@
             const file = e.target.files[0];
             if (!file) return;
             const reader = new FileReader();
-            reader.onload = function(ev) {
-                document.getElementById('importTextArea').value = ev.target.result;
-            };
+            reader.onload = function(ev) { document.getElementById('importTextArea').value = ev.target.result; };
             reader.readAsText(file, 'UTF-8');
             e.target.value = '';
         }
@@ -953,7 +1105,10 @@
                 }
             }
             dbList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-            renderAll();
+            // Обновляем таблицу только если мы не в процессе редактирования
+            if(!isInlineEditing) {
+                renderAll();
+            }
         }, err => {
             document.getElementById('loadingOverlay').innerHTML = `<div style="background: white; color: black; padding: 20px; border-radius: 4px; text-align: center;"><h3 style="color: #dc3545;">❌ Ошибка</h3><p>${err.message}</p></div>`;
         });
@@ -965,6 +1120,10 @@
 
         // ===== Вкладки =====
         document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => {
+            if(isInlineEditing) {
+                alert('Сначала завершите групповое редактирование!');
+                return;
+            }
             document.querySelectorAll('.tab-btn, .tab-content').forEach(e => e.classList.remove('active'));
             b.classList.add('active');
             const tid = b.dataset.target;
@@ -987,12 +1146,6 @@
 
         // ===== Инициализация =====
         renderAll();
-
-        document.querySelectorAll('.modal-overlay').forEach(el => {
-            el.addEventListener('click', (e) => {
-                if (e.target === el) closeModal(el.id);
-            });
-        });
     </script>
 </body>
 </html>

@@ -77,8 +77,8 @@
         .table-responsive { width: 100%; overflow-x: auto; background: var(--container-bg); border-radius: 4px; box-shadow: var(--shadow); -webkit-overflow-scrolling: touch;}
         table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
         
-        /* Ширина столбцов под контент, без переноса текста */
-        th, td { padding: 4px 5px; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; white-space: nowrap; }
+        /* Ширина столбцов под контент, без переноса текста + 10px ширины */
+        th, td { padding: 4px 10px; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; white-space: nowrap; }
         th { background-color: var(--header-bg); color: white; font-weight: 500; cursor: pointer; user-select: none; position: sticky; top: 0; z-index: 10; white-space: nowrap; }
         th:hover { background-color: #343a40; }
         tr:hover { background-color: var(--table-hover); }
@@ -103,7 +103,7 @@
         .modal-body { overflow-y: auto; padding-right: 4px; flex: 1; }
         .modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); }
         
-        /* Новая сетка модального окна на 2 колонки */
+        /* Сетка модального окна на 2 колонки */
         .modal-body-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
         .modal-col { display: flex; flex-direction: column; gap: 15px; }
         .form-section { padding-bottom: 12px; border-bottom: 1px solid var(--border-color); }
@@ -131,6 +131,11 @@
             .filters { flex-direction: column; width: 100%; gap: 4px; }
             .filters input, .filters select { width: 100%; }
             .modal-body-grid { grid-template-columns: 1fr; gap: 0; }
+            
+            /* Сброс стилей для мобилок для sticky панели */
+            #fullTableControls { position: static !important; flex-direction: column; align-items: stretch; }
+            #fullTableControls > div { justify-content: center !important; flex: none !important; width: 100%; }
+
             table { font-size: 0.65rem; }
         }
     </style>
@@ -179,20 +184,21 @@
         </section>
 
         <section id="fullTable" class="tab-content">
-            <div class="controls">
-                <div style="font-size: 0.85rem; color: var(--text-muted); display:flex; flex-direction:column; gap:4px;">
-                    <div>Нажмите на заголовок для сортировки.</div>
-                    <div id="inlineEditControls">
-                        <button class="btn btn-warning" id="btnInlineEdit" onclick="toggleInlineEdit()">✎ Групповая правка</button>
-                        <button class="btn btn-success" id="btnInlineSave" onclick="saveInlineEdit()" style="display:none;">💾 Сохранить правки</button>
-                        <button class="btn btn-secondary" id="btnInlineCancel" onclick="cancelInlineEdit()" style="display:none;">✕ Отмена</button>
-                    </div>
+            <div id="fullTableControls" class="controls" style="position: sticky; top: 46px; z-index: 90; display: flex; align-items: center; justify-content: space-between; border-radius: 0 0 4px 4px; border-top: none;">
+                <div style="flex: 1;"></div>
+                
+                <div id="inlineEditControls" style="display:flex; justify-content:center; gap:6px; flex: 1;">
+                    <button class="btn btn-warning" id="btnInlineEdit" onclick="toggleInlineEdit()">✎ Групповая правка</button>
+                    <button class="btn btn-success" id="btnInlineSave" onclick="saveInlineEdit()" style="display:none;">💾 Сохранить правки</button>
+                    <button class="btn btn-secondary" id="btnInlineCancel" onclick="cancelInlineEdit()" style="display:none;">✕ Отмена</button>
                 </div>
-                <div>
+
+                <div style="display:flex; justify-content:flex-end; gap:6px; flex: 1;">
                     <button class="btn btn-success" onclick="exportToExcel()">📥 Выгрузить в Excel</button>
-                    <button class="btn btn-primary" onclick="refreshTable()">🔄 Обновить</button>
+                    <button class="btn btn-secondary" onclick="toggleTheme()">🌓 Сменить тему</button>
                 </div>
             </div>
+
             <div class="table-responsive" id="fullTableWrapper">
                 <table id="dataTable">
                     <thead>
@@ -220,10 +226,6 @@
             </div>
         </section>
     </main>
-
-    <footer>
-        <button class="footer-btn" onclick="toggleTheme()" style="margin:10px; padding:6px; border-radius:4px; border:none; cursor:pointer;">🌓 Сменить тему</button>
-    </footer>
 
     <div class="modal-overlay" id="editModal">
         <div class="modal">
@@ -274,6 +276,7 @@
                                     </div>
                                     <div class="form-group"><label>Заводской №</label><input type="text" id="e_oldMeterSerial" placeholder="Номер старого"></div>
                                     <div class="form-group"><label>Показания</label><input type="text" id="e_oldMeterReadings" placeholder="Показания"></div>
+                                    <div class="form-group"><label>Пломба контролера</label><input type="text" id="e_controllerSeal" placeholder="Номер пломбы"></div>
                                 </div>
                             </div>
 
@@ -281,14 +284,6 @@
                                 <h4>🔧 Монтажник</h4>
                                 <div class="form-grid">
                                     <div class="form-group"><label>ФИО монтажника</label><input type="text" id="e_installer" placeholder="Петров П.П."></div>
-                                </div>
-                            </div>
-
-                            <div class="form-section">
-                                <h4>📌 Дополнительно</h4>
-                                <div class="form-grid">
-                                    <div class="form-group"><label>GPS</label><input type="text" id="e_gps" placeholder="43.300058, 45.684476"></div>
-                                    <div class="form-group"><label>Дата</label><input type="text" id="e_date" placeholder="30.06.2026, 20:43"></div>
                                 </div>
                             </div>
                         </div> <div class="modal-col">
@@ -321,7 +316,6 @@
                                     </div>
                                     <div class="form-group"><label>Серийный №</label><input type="text" id="e_serial" placeholder="Номер нового"></div>
                                     <div class="form-group"><label>Мощность (м³/ч)</label><input type="text" id="e_totalPower" placeholder="Например: 11.6"></div>
-                                    <div class="form-group"><label>Пломба контролера</label><input type="text" id="e_controllerSeal" placeholder="Номер пломбы"></div>
                                     
                                     <div class="form-group"><label>Направление</label>
                                         <div class="input-with-select">
@@ -339,6 +333,15 @@
                                 </div>
                             </div>
                         </div> </div>
+
+                    <div class="form-section" style="margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 15px; border-bottom: none;">
+                        <h4 style="justify-content: center;">📌 Дополнительно</h4>
+                        <div class="modal-body-grid">
+                            <div class="form-group"><label>GPS</label><input type="text" id="e_gps" placeholder="43.300058, 45.684476"></div>
+                            <div class="form-group"><label>Дата</label><input type="text" id="e_date" placeholder="30.06.2026, 20:43"></div>
+                        </div>
+                    </div>
+
                     <input type="hidden" id="e_recordId">
                 </form>
             </div>
@@ -456,9 +459,9 @@
 
             grid.innerHTML = `
                 <div class="stat-card"><div class="stat-number">${total}</div><div class="stat-label">Всего установок</div></div>
-                <div class="stat-card" style="cursor: pointer; transition: background 0.2s; border: 1px dashed var(--primary-color);" onclick="showTodayDetails()" onmouseover="this.style.background='var(--table-hover)'" onmouseout="this.style.background='var(--container-bg)'" title="Нажмите для просмотра деталей">
+                <div class="stat-card" style="cursor: pointer; transition: background 0.2s; color: var(--primary-color);" onclick="showTodayDetails()" onmouseover="this.style.background='var(--table-hover)'" onmouseout="this.style.background='var(--container-bg)'" title="Нажмите для просмотра деталей">
                     <div class="stat-number">${todayCount}</div>
-                    <div class="stat-label" style="color: var(--primary-color); font-weight: bold;">Сегодня (с 7:00) 🔍</div>
+                    <div class="stat-label" style="font-weight: bold;">Сегодня (с 7:00)</div>
                 </div>
                 <div class="stat-card"><div class="stat-number">${installers.size}</div><div class="stat-label">Монтажников</div></div>
                 <div class="stat-card"><div class="stat-number">${topModel ? topModel[1] : 0}</div><div class="stat-label">Самая част. модель: ${topModel ? topModel[0] : '-'}</div></div>
@@ -546,7 +549,6 @@
                     <td class="text-right">
                         <button class="btn btn-primary btn-small" onclick="showDetails('${inst}')">📋 Детализация</button>
                         <button class="btn btn-warning btn-small" onclick="editInstaller('${inst}')">✎ Правка</button>
-                        <button class="btn btn-success btn-small" onclick="openAddRecordWithInstaller('${inst}')">➕</button>
                     </td>
                 </tr>`;
             });
@@ -618,7 +620,7 @@
             }
         }
 
-        // ===== Таблица =====
+        // ===== Таблица и быстрое редактирование =====
         function renderFullTable() {
             if (isInlineEditing) return; 
             const tbody = document.getElementById('fullTableBody');
@@ -626,7 +628,7 @@
             
             let html = '';
             dbList.forEach(item => {
-                html += `<tr>
+                html += `<tr ondblclick="enableRowEdit(this, '${item.id}', event)">
                     <td class="text-center"><input type="checkbox" class="row-checkbox" value="${item.id}"></td>
                     <td data-field="installer"><b>${item.installer || '-'}</b></td>
                     <td data-field="objectName">${item.objectName || '-'}</td>
@@ -654,6 +656,42 @@
 
         function refreshTable() {
             renderFullTable();
+        }
+
+        function enableRowEdit(tr, id, event) {
+            if (event.target.tagName === 'INPUT' || event.target.tagName === 'BUTTON') return;
+            
+            if (tr.classList.contains('editing-row')) return;
+
+            if (!isInlineEditing) {
+                document.getElementById('btnInlineEdit').style.display = 'none';
+                document.getElementById('btnInlineSave').style.display = 'inline-block';
+                document.getElementById('btnInlineCancel').style.display = 'inline-block';
+                isInlineEditing = true;
+            }
+
+            tr.classList.add('editing-row');
+            tr.style.backgroundColor = '#fff3cd'; 
+            
+            tr.querySelectorAll('td[data-field]').forEach(td => {
+                let field = td.getAttribute('data-field');
+                let val = td.innerText === '-' ? '' : td.innerText;
+                td.innerHTML = `<input type="text" class="inline-edit-input" data-field="${field}" value="${val.replace(/"/g, '&quot;')}">`;
+            });
+            
+            tr.querySelector('.edit-single-btn').style.display = 'none';
+            tr.querySelector('.del-single-btn').style.display = 'none';
+            
+            if (event && event.target && event.target.tagName === 'TD' && event.target.hasAttribute('data-field')) {
+                let field = event.target.getAttribute('data-field');
+                let input = tr.querySelector(`input[data-field="${field}"]`);
+                if (input) {
+                    input.focus();
+                    let v = input.value;
+                    input.value = '';
+                    input.value = v; 
+                }
+            }
         }
 
         // ===== Групповое редактирование =====
@@ -728,6 +766,7 @@
                 document.getElementById('btnInlineSave').style.display = 'none';
                 document.getElementById('btnInlineSave').innerText = '💾 Сохранить правки';
                 document.getElementById('btnInlineCancel').style.display = 'none';
+                renderFullTable(); 
                 alert('Изменения успешно сохранены!');
             }).catch(e => {
                 alert('Ошибка: ' + e.message);

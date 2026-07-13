@@ -1126,9 +1126,19 @@
 
             tr.classList.add('editing-row');
             
-            tr.querySelectorAll('td[data-field]').forEach(td => {
+            // 1. ЗАМЕРЯЕМ ширину всех ячеек в строке до того, как начнем вставлять инпуты
+            let fields = Array.from(tr.querySelectorAll('td[data-field]'));
+            let widths = fields.map(td => td.getBoundingClientRect().width);
+            
+            // 2. ПРИМЕНЯЕМ зафиксированную ширину и вставляем инпуты
+            fields.forEach((td, index) => {
                 let field = td.getAttribute('data-field');
                 let val = td.innerText === '-' ? '' : td.innerText;
+                
+                let w = widths[index];
+                td.style.width = w + 'px';
+                td.style.minWidth = w + 'px';
+                td.style.maxWidth = w + 'px';
                 
                 td.innerHTML = `<input type="text" class="inline-edit-input" data-field="${field}" value="${val.replace(/"/g, '&quot;')}">`;
             });
@@ -1161,13 +1171,28 @@
             if (checkboxes.length === 0) return alert('Сначала выберите строки для редактирования, отметив их галочками.');
 
             if (!isInlineEditing) {
-                checkboxes.forEach(cb => {
-                    let tr = cb.closest('tr');
+                let rowsToEdit = Array.from(checkboxes).map(cb => cb.closest('tr'));
+                
+                // 1. ЗАМЕРЯЕМ все строки ДО изменения DOM
+                let measurements = rowsToEdit.map(tr => {
+                    return Array.from(tr.querySelectorAll('td[data-field]')).map(td => td.getBoundingClientRect().width);
+                });
+
+                // 2. ВНОСИМ ИЗМЕНЕНИЯ, используя зафиксированные замеры
+                rowsToEdit.forEach((tr, rowIndex) => {
                     tr.classList.add('editing-row');
                     
-                    tr.querySelectorAll('td[data-field]').forEach(td => {
+                    let fields = Array.from(tr.querySelectorAll('td[data-field]'));
+                    let widths = measurements[rowIndex];
+
+                    fields.forEach((td, index) => {
                         let field = td.getAttribute('data-field');
                         let val = td.innerText === '-' ? '' : td.innerText;
+                        
+                        let w = widths[index];
+                        td.style.width = w + 'px';
+                        td.style.minWidth = w + 'px';
+                        td.style.maxWidth = w + 'px';
                         
                         td.innerHTML = `<input type="text" class="inline-edit-input" data-field="${field}" value="${val.replace(/"/g, '&quot;')}">`;
                     });

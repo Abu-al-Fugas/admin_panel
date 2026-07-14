@@ -236,7 +236,7 @@
         /* ===== ВАЛИДАЦИЯ (Подсветка ошибок) ===== */
         tr.error-row td { background-color: #fee2e2 !important; }
         tr.error-row:hover td { background-color: #fca5a5 !important; }
-        tr.error-row td[data-field="serial"] { color: #991b1b; font-weight: bold; }
+        td.error-cell { color: #991b1b !important; font-weight: bold !important; }
 
         .text-right { text-align: right; }
         .text-center { text-align: center; }
@@ -278,12 +278,9 @@
         /* ===== РЕШЕНИЕ ПРОБЛЕМЫ С ОБРЕЗАНИЕМ И СМЕЩЕНИЕМ ТАБЛИЦЫ ===== */
         .editing-row td { 
             background-color: #eff6ff !important; 
-            /* Отступы НЕ меняем, чтобы столбец не сужался! */
         }
         
         .inline-edit-input { 
-            /* Делаем инпут шире на 24px и за счет отрицательного margin "наезжаем" на внутренние отступы ячейки. 
-               Это дает инпуту место, а физическая коробка <td> остается неизменной -> таблица не сдвинется ни на пиксель! */
             width: calc(100% + 24px); 
             margin: -6px -12px; 
             padding: 6px 10px; 
@@ -645,7 +642,17 @@
     </div>
 
     <script>
-        // ===== Учет префиксов для умной проверки =====
+        // ===== ВАЛИДАЦИОННЫЕ КОНСТАНТЫ =====
+        const MAX_POWER_MAP = {
+            'G4': 7,
+            'G6': 11,
+            'G10': 18,
+            'G16': 28,
+            'G25': 45,
+            'G40': 72,
+            'G65': 110
+        };
+
         function getExpectedPrefix(modelName) {
             if (!modelName) return null;
             let norm = modelName.replace(/\s+/g, '').toUpperCase();
@@ -1045,15 +1052,29 @@
             });
         }
 
+        // ===== Обработчик горячих клавиш при редактировании =====
+        function handleInlineEditKeydown(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                saveInlineEdit();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                cancelInlineEdit();
+            }
+        }
+
         function renderFullTable() {
             if (isInlineEditing) return; 
             const tbody = document.getElementById('fullTableBody');
-            document.getElementById('selectAllCheckbox').checked = false; 
+            
+            // Запоминаем отмеченные чекбоксы до обновления таблицы
+            const checkedIds = new Set(Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value));
+            const selectAllState = document.getElementById('selectAllCheckbox') ? document.getElementById('selectAllCheckbox').checked : false;
             
             // Подсчет дубликатов для валидации
             let serialCounts = {};
             dbList.forEach(item => {
-                if (item.serial) {
+                if (item.serial && item.serial !== '-') {
                     serialCounts[item.serial] = (serialCounts[item.serial] || 0) + 1;
                 }
             });
@@ -1063,34 +1084,62 @@
                 
                 // Валидация
                 let isError = false;
+                let serialError = false;
+                let powerError = false;
                 let errorTitle = "";
-                if (item.serial) {
+                
+                if (item.serial && item.serial !== '-') {
+                    let digits = item.serial.replace(/\D/g, ''); 
                     let isDuplicate = serialCounts[item.serial] > 1;
                     let expectedPrefix = getExpectedPrefix(item.model);
                     let wrongPrefix = expectedPrefix && !item.serial.startsWith(expectedPrefix);
+                    let wrongLength = digits.length !== 11;
                     
                     if (isDuplicate) {
                         errorTitle += "Дубликат серийного номера! ";
-                        isError = true;
+                        serialError = true;
                     }
                     if (wrongPrefix) {
                         errorTitle += `Неверное начало номера (ожидается ${expectedPrefix})! `;
-                        isError = true;
+                        serialError = true;
+                    }
+                    if (wrongLength) {
+                        errorTitle += `В серийном номере ${digits.length} цифр (должно быть ровно 11)! `;
+                        serialError = true;
                     }
                 }
 
+                if (item.model && item.totalPower && item.totalPower !== '-') {
+                    let sizeMatch = item.model.match(/G\d{1,2}/i);
+                    let size = sizeMatch ? sizeMatch[0].toUpperCase() : null;
+                    if (size && MAX_POWER_MAP[size] !== undefined) {
+                        let pValStr = item.totalPower.replace(',', '.').replace(/[^\d.-]/g, '');
+                        let pVal = parseFloat(pValStr);
+                        if (!isNaN(pVal) && pVal > MAX_POWER_MAP[size]) {
+                            powerError = true;
+                            errorTitle += `Превышена макс. мощность для ${size} (макс. ${MAX_POWER_MAP[size]} м³/ч, указано ${pVal})! `;
+                        }
+                    }
+                }
+
+                isError = serialError || powerError;
                 let rowClass = isError ? 'error-row' : '';
+                let serialClass = serialError ? 'error-cell' : '';
+                let powerClass = powerError ? 'error-cell' : '';
+
+                // Проверяем, был ли этот чекбокс нажат до обновления
+                let isChecked = checkedIds.has(item.id) ? 'checked' : '';
 
                 html += `<tr class="${rowClass}" title="${errorTitle}" ondblclick="enableRowEdit(this, '${item.id}', event)">
-                    <td class="text-center"><input type="checkbox" class="row-checkbox" value="${item.id}"></td>
+                    <td class="text-center"><input type="checkbox" class="row-checkbox" value="${item.id}" ${isChecked}></td>
                     <td data-field="installer"><b>${item.installer || '-'}</b></td>
                     <td data-field="objectName">${item.objectName || '-'}</td>
                     <td data-field="address" title="${item.address || '-'}">${item.address || '-'}</td>
                     <td data-field="uirgLocation">${item.uirgLocation || '-'}</td>
-                    <td data-field="totalPower">${item.totalPower || '-'}</td>
+                    <td class="${powerClass}" data-field="totalPower">${item.totalPower || '-'}</td>
                     <td class="text-center"><input type="checkbox" class="passport-checkbox" onchange="updatePassport('${item.id}', this.checked)" ${item.passport ? 'checked' : ''}></td>
                     <td data-field="model"><b style="color:var(--accent-blue);">${item.model || '-'}</b></td>
-                    <td data-field="serial">${item.serial || '-'}</td>
+                    <td class="${serialClass}" data-field="serial">${item.serial || '-'}</td>
                     <td data-field="controllerSeal">${item.controllerSeal || '-'}</td>
                     <td data-field="oldMeterModel">${item.oldMeterModel || '-'}</td>
                     <td data-field="oldMeterSerial">${item.oldMeterSerial || '-'}</td>
@@ -1108,8 +1157,21 @@
             
             tbody.innerHTML = html;
             
+            // Возвращаем статус главному чекбоксу "Выбрать все"
+            const mainCheckbox = document.getElementById('selectAllCheckbox');
+            if (mainCheckbox) mainCheckbox.checked = selectAllState;
+            
             applyColumnWidths();
             filterTable(); // Восстанавливаем фильтр поиска
+
+            // Восстанавливаем сортировку
+            const savedSortCol = localStorage.getItem('botstm_sortCol');
+            const savedSortType = localStorage.getItem('botstm_sortType');
+            const savedSortDir = localStorage.getItem('botstm_sortDir');
+
+            if (savedSortCol !== null && savedSortDir !== null) {
+                sortTable(parseInt(savedSortCol), savedSortType || 'string', savedSortDir);
+            }
         }
 
         function enableRowEdit(tr, id, event) {
@@ -1140,7 +1202,7 @@
                 td.style.minWidth = w + 'px';
                 td.style.maxWidth = w + 'px';
                 
-                td.innerHTML = `<input type="text" class="inline-edit-input" data-field="${field}" value="${val.replace(/"/g, '&quot;')}">`;
+                td.innerHTML = `<input type="text" class="inline-edit-input" data-field="${field}" value="${val.replace(/"/g, '&quot;')}" onkeydown="handleInlineEditKeydown(event)">`;
             });
             
             const editBtn = tr.querySelector('.edit-single-btn');
@@ -1194,7 +1256,7 @@
                         td.style.minWidth = w + 'px';
                         td.style.maxWidth = w + 'px';
                         
-                        td.innerHTML = `<input type="text" class="inline-edit-input" data-field="${field}" value="${val.replace(/"/g, '&quot;')}">`;
+                        td.innerHTML = `<input type="text" class="inline-edit-input" data-field="${field}" value="${val.replace(/"/g, '&quot;')}" onkeydown="handleInlineEditKeydown(event)">`;
                     });
                     
                     const editBtn = tr.querySelector('.edit-single-btn');
@@ -1306,7 +1368,7 @@
         }
 
         // ===== Сортировка =====
-        function sortTable(n, type = 'string') {
+        function sortTable(n, type = 'string', forceDir = null) {
             if(isInlineEditing) return alert('Сортировка недоступна во время редактирования.');
             
             const table = document.getElementById("dataTable");
@@ -1316,8 +1378,13 @@
 
             document.querySelectorAll('.sort-icon').forEach(icon => icon.innerText = '');
 
-            const dir = sortDirection[n] === "asc" ? "desc" : "asc";
+            const dir = forceDir ? forceDir : (sortDirection[n] === "asc" ? "desc" : "asc");
             sortDirection[n] = dir;
+            
+            // Сохраняем сортировку для последующих рендеров
+            localStorage.setItem('botstm_sortCol', n);
+            localStorage.setItem('botstm_sortType', type);
+            localStorage.setItem('botstm_sortDir', dir);
             
             const currentIcon = document.getElementById(`sort-${n}`);
             if (currentIcon) currentIcon.innerText = dir === 'asc' ? '▲' : '▼';
@@ -1378,7 +1445,8 @@
                 objectName: ['Объект', 'Наименование объекта'], address: ['Адрес', 'Адрес объекта'],
                 installer: ['Монтажник', 'ФИО монтажника'], consumer: ['Потребитель', 'ФИО потребителя'],
                 position: ['Должность'], ls: ['Лицевой счет', 'ЛС'],
-                model: ['Модель', 'Модель нового счетчика'], serial: ['Серийный номер', 'Серийный №', 'Серийный № нового счетчика', '№'],
+                model: ['Модель нового счетчика', 'Модель нового', 'Модель'], 
+                serial: ['Серийный № нового счетчика', '№ нового', 'Серийный номер', 'Серийный №', '№'],
                 gps: ['GPS', 'Координаты GPS'], date: ['Дата', 'Дата/время генерации'],
                 controllerSeal: ['Пломба', 'Пломба контролера'], oldMeterModel: ['Модель старого'],
                 oldMeterSerial: ['№ старого'], oldMeterReadings: ['Показания старого'],

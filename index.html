@@ -711,15 +711,45 @@
             const grid = document.getElementById('statsGrid');
             const total = dbList.length;
             
+            // Подсчет ошибок в таблице
+            let errorCount = 0;
+            let serialCounts = {};
+            dbList.forEach(item => {
+                if (item.serial && item.serial !== '-') {
+                    serialCounts[item.serial] = (serialCounts[item.serial] || 0) + 1;
+                }
+            });
+
+            dbList.forEach(item => {
+                let isError = false;
+                if (item.serial && item.serial !== '-') {
+                    let digits = item.serial.replace(/\D/g, ''); 
+                    let isDuplicate = serialCounts[item.serial] > 1;
+                    let expectedPrefix = getExpectedPrefix(item.model);
+                    let wrongPrefix = expectedPrefix && !item.serial.startsWith(expectedPrefix);
+                    let wrongLength = digits.length !== 11;
+                    if (isDuplicate || wrongPrefix || wrongLength) isError = true;
+                }
+
+                if (item.model && item.totalPower && item.totalPower !== '-') {
+                    let sizeMatch = item.model.match(/G\d{1,2}/i);
+                    let size = sizeMatch ? sizeMatch[0].toUpperCase() : null;
+                    if (size && MAX_POWER_MAP[size] !== undefined) {
+                        let pValStr = item.totalPower.replace(',', '.').replace(/[^\d.-]/g, '');
+                        let pVal = parseFloat(pValStr);
+                        if (!isNaN(pVal) && pVal > MAX_POWER_MAP[size]) isError = true;
+                    }
+                }
+                
+                if (isError) errorCount++;
+            });
+
             const installersCount = {};
             dbList.forEach(i => { 
                 if(i.installer && i.installer.trim() !== '') {
                     installersCount[i.installer] = (installersCount[i.installer]||0)+1; 
                 }
             });
-            const topInstaller = Object.entries(installersCount).sort((a,b)=>b[1]-a[1])[0];
-            const installerCountLabel = topInstaller ? topInstaller[0] : '-';
-            const installerCountValue = topInstaller ? topInstaller[1] : 0;
 
             const now = new Date();
             const todayStart = new Date(now); todayStart.setHours(7, 0, 0, 0);
@@ -747,7 +777,7 @@
                     <div class="stat-label" style="font-weight: 600;">Сегодня (с 7:00)</div>
                 </div>
                 <div class="stat-card"><div class="stat-number">${Object.keys(installersCount).length}</div><div class="stat-label">Монтажников</div></div>
-                <div class="stat-card"><div class="stat-number">${installerCountValue}</div><div class="stat-label">Лидер: ${installerCountLabel}</div></div>
+                <div class="stat-card"><div class="stat-number" style="color: var(--danger-color);">${errorCount}</div><div class="stat-label">Ошибок в таблице</div></div>
             `;
         }
 
@@ -927,19 +957,14 @@
                 
                 if (field === 'warehouse') {
                     updates = { warehouse: newVal };
-                    invRef.child(model).update(updates).catch(e => alert(e.message));
                 } else if (field === 'installers') {
-                    let diff = newVal - currentInstallers;
-                    let newWarehouse = currentWarehouse - diff;
-                    if(newWarehouse < 0) newWarehouse = 0; 
-                    
                     updates = {
-                        warehouse: newWarehouse,
                         base_installers: newVal,
                         offset_installed: currentInstalled
                     };
-                    invRef.child(model).update(updates).catch(e => alert(e.message));
                 }
+                
+                invRef.child(model).update(updates).catch(e => alert(e.message));
                 
                 td.innerHTML = `<span>${newVal}</span>`;
             }
@@ -1188,16 +1213,18 @@
 
             tr.classList.add('editing-row');
             
-            // 1. ЗАМЕРЯЕМ ширину всех ячеек в строке до того, как начнем вставлять инпуты
+            // ЗАМЕРЯЕМ ширину ячеек
             let fields = Array.from(tr.querySelectorAll('td[data-field]'));
             let widths = fields.map(td => td.getBoundingClientRect().width);
             
-            // 2. ПРИМЕНЯЕМ зафиксированную ширину и вставляем инпуты
             fields.forEach((td, index) => {
                 let field = td.getAttribute('data-field');
                 let val = td.innerText === '-' ? '' : td.innerText;
                 
-                let w = widths[index];
+                // РАСЧЕТ ШИРИНЫ: Берем текущую ширину, но если текст длинный (особенно после поиска), не даем ячейке сжаться слишком сильно
+                let requiredWidth = val.length * 9 + 32; 
+                let w = Math.max(widths[index], requiredWidth, 60);
+                
                 td.style.width = w + 'px';
                 td.style.minWidth = w + 'px';
                 td.style.maxWidth = w + 'px';
@@ -1235,12 +1262,10 @@
             if (!isInlineEditing) {
                 let rowsToEdit = Array.from(checkboxes).map(cb => cb.closest('tr'));
                 
-                // 1. ЗАМЕРЯЕМ все строки ДО изменения DOM
                 let measurements = rowsToEdit.map(tr => {
                     return Array.from(tr.querySelectorAll('td[data-field]')).map(td => td.getBoundingClientRect().width);
                 });
 
-                // 2. ВНОСИМ ИЗМЕНЕНИЯ, используя зафиксированные замеры
                 rowsToEdit.forEach((tr, rowIndex) => {
                     tr.classList.add('editing-row');
                     
@@ -1251,7 +1276,9 @@
                         let field = td.getAttribute('data-field');
                         let val = td.innerText === '-' ? '' : td.innerText;
                         
-                        let w = widths[index];
+                        let requiredWidth = val.length * 9 + 32; 
+                        let w = Math.max(widths[index], requiredWidth, 60);
+                        
                         td.style.width = w + 'px';
                         td.style.minWidth = w + 'px';
                         td.style.maxWidth = w + 'px';

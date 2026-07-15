@@ -265,14 +265,55 @@
             white-space: nowrap;
         }
 
-        /* Чекбоксы и иконки сортировки */
-        .row-checkbox, #selectAllCheckbox, .passport-checkbox { 
+        /* Чекбоксы выделения строк */
+        .row-checkbox, #selectAllCheckbox { 
             cursor: pointer; 
             width: 16px; 
             height: 16px; 
             margin: 0; 
             accent-color: var(--accent-cyan);
         }
+        
+        /* Модифицированный чекбокс паспорта (Эмодзи) */
+        .passport-checkbox { 
+            appearance: none;
+            -webkit-appearance: none;
+            background: transparent;
+            width: 16px; 
+            height: 16px; 
+            cursor: pointer; 
+            margin: 0; 
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            box-shadow: none;
+            transform: none;
+        }
+        .passport-checkbox::before {
+            content: '📄';
+            font-size: 16px;
+            position: absolute;
+            opacity: 0.6;
+            filter: grayscale(100%);
+            transition: 0.2s;
+        }
+        .passport-checkbox:checked::before {
+            opacity: 1;
+            filter: none;
+        }
+        .passport-checkbox:checked::after {
+            content: '✔';
+            color: #10b981;
+            position: absolute;
+            font-size: 14px;
+            font-weight: 900;
+            bottom: -6px;
+            right: -6px;
+            text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;
+        }
+
         .sort-icon { display: inline-block; width: 12px; font-size: 0.7rem; color: var(--accent-cyan); margin-left: 4px;}
         
         /* ===== РЕШЕНИЕ ПРОБЛЕМЫ С ОБРЕЗАНИЕМ И СМЕЩЕНИЕМ ТАБЛИЦЫ ===== */
@@ -427,26 +468,24 @@
                         <tr>
                             <th class="text-center" style="width: 40px; z-index: 11;"><input type="checkbox" id="selectAllCheckbox" onclick="toggleAllCheckboxes()"></th>
                             <th onclick="sortTable(1)">Монтажник <span class="sort-icon" id="sort-1"></span></th>
-                            <th class="resizable" data-col="objectName" onclick="sortTable(2)">
-                                Объект <span class="sort-icon" id="sort-2"></span>
-                                <div class="resizer"></div>
-                            </th>
-                            <th class="resizable" data-col="address" onclick="sortTable(3)">
-                                Адрес <span class="sort-icon" id="sort-3"></span>
-                                <div class="resizer"></div>
-                            </th>
-                            <th onclick="sortTable(4)">Расположение <span class="sort-icon" id="sort-4"></span></th>
-                            <th onclick="sortTable(5, 'number')">Мощн. <span class="sort-icon" id="sort-5"></span></th>
-                            <th onclick="sortTable(6, 'checkbox')" class="text-center" style="z-index: 11;">Паспорт <span class="sort-icon" id="sort-6"></span></th>
-                            <th onclick="sortTable(7)">Модель <span class="sort-icon" id="sort-7"></span></th>
-                            <th data-col="serial" onclick="sortTable(8)">№ <span class="sort-icon" id="sort-8"></span></th>
-                            <th data-col="controllerSeal" onclick="sortTable(9)">Пломба <span class="sort-icon" id="sort-9"></span></th>
-                            <th onclick="sortTable(10)">Ст. модель <span class="sort-icon" id="sort-10"></span></th>
-                            <th data-col="oldMeterSerial" onclick="sortTable(11)">Ст. № <span class="sort-icon" id="sort-11"></span></th>
-                            <th onclick="sortTable(12)">Ст. показ. <span class="sort-icon" id="sort-12"></span></th>
-                            <th onclick="sortTable(13)">Направл. <span class="sort-icon" id="sort-13"></span></th>
-                            <th data-col="simCardNumber" onclick="sortTable(14)">SIM <span class="sort-icon" id="sort-14"></span></th>
-                            <th onclick="sortTable(15, 'date')">Дата <span class="sort-icon" id="sort-15"></span></th>
+                            <th class="resizable" data-col="objectName" onclick="sortTable(2)">Объект <span class="sort-icon" id="sort-2"></span><div class="resizer"></div></th>
+                            <th class="resizable" data-col="address" onclick="sortTable(3)">Адрес <span class="sort-icon" id="sort-3"></span><div class="resizer"></div></th>
+                            <th onclick="sortTable(4)">Потребитель <span class="sort-icon" id="sort-4"></span></th>
+                            <th onclick="sortTable(5)">Должность <span class="sort-icon" id="sort-5"></span></th>
+                            <th onclick="sortTable(6, 'number')">Мощн. <span class="sort-icon" id="sort-6"></span></th>
+                            <th onclick="sortTable(7, 'checkbox')" class="text-center" style="z-index: 11;">Паспорт <span class="sort-icon" id="sort-7"></span></th>
+                            <th onclick="sortTable(8)">Модель <span class="sort-icon" id="sort-8"></span></th>
+                            <th data-col="serial" onclick="sortTable(9)">№ <span class="sort-icon" id="sort-9"></span></th>
+                            <th onclick="sortTable(10)">Направл. <span class="sort-icon" id="sort-10"></span></th>
+                            <th data-col="simCardNumber" onclick="sortTable(11)">SIM <span class="sort-icon" id="sort-11"></span></th>
+                            <th onclick="sortTable(12)">Ст. модель <span class="sort-icon" id="sort-12"></span></th>
+                            <th data-col="oldMeterSerial" onclick="sortTable(13)">Ст. № <span class="sort-icon" id="sort-13"></span></th>
+                            <th onclick="sortTable(14)">Ст. показ. <span class="sort-icon" id="sort-14"></span></th>
+                            <th data-col="controllerSeal" onclick="sortTable(15)">Пломба <span class="sort-icon" id="sort-15"></span></th>
+                            <th onclick="sortTable(16)">Расположение <span class="sort-icon" id="sort-16"></span></th>
+                            <th onclick="sortTable(17)">ЛС <span class="sort-icon" id="sort-17"></span></th>
+                            <th onclick="sortTable(18)">GPRS <span class="sort-icon" id="sort-18"></span></th>
+                            <th onclick="sortTable(19, 'date')">Дата <span class="sort-icon" id="sort-19"></span></th>
                             <th class="text-center" style="z-index: 11;">Действия</th>
                         </tr>
                     </thead>
@@ -456,6 +495,9 @@
         </section>
 
         <section id="inventory" class="tab-content">
+            <div class="controls" style="margin-bottom: 12px; display: flex; justify-content: flex-end; padding: 8px 16px; background: var(--bg-secondary); border-radius: var(--radius); box-shadow: var(--shadow-glow); border: 1px solid var(--glass-border);">
+                <button class="btn btn-primary btn-small" onclick="openPlannedModal()">Настроить план установок</button>
+            </div>
             <div class="table-responsive">
                 <table>
                     <thead>
@@ -472,6 +514,21 @@
             </div>
         </section>
     </main>
+
+    <!-- Модальное окно для настройки плана -->
+    <div class="modal-overlay" id="plannedModal">
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-header"><span>План установок</span><button class="modal-close" onclick="closeModal('plannedModal')">&times;</button></div>
+            <div class="modal-body" id="plannedBody">
+                <p style="margin-bottom: 16px; font-size: 0.85rem; color: var(--text-secondary);">Укажите плановое количество счетчиков. Оно будет использоваться для проверки итогов на вкладке "Остаток".</p>
+                <div id="plannedInputsContainer"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('plannedModal')">Отмена</button>
+                <button class="btn btn-primary" onclick="savePlannedValues()">Сохранить</button>
+            </div>
+        </div>
+    </div>
 
     <div class="modal-overlay" id="editModal">
         <div class="modal">
@@ -653,6 +710,16 @@
             'G65': 110
         };
 
+        const DEFAULT_PLANNED = {
+            'СМТ-Смарт G4': 98,
+            'СМТ-Смарт G6': 236,
+            'СМТ-Смарт G10': 70,
+            'СМТ- Комплекс G16': 52,
+            'СМТ- Комплекс G25': 43,
+            'СМТ- Комплекс G40': 75,
+            'СМТ- Комплекс G65': 34
+        };
+
         function getExpectedPrefix(modelName) {
             if (!modelName) return null;
             let norm = modelName.replace(/\s+/g, '').toUpperCase();
@@ -701,7 +768,7 @@
 
         document.querySelectorAll('.modal-overlay').forEach(el => {
             el.addEventListener('click', (e) => {
-                if (el.id === 'editModal') return; 
+                if (el.id === 'editModal' || el.id === 'plannedModal') return; 
                 if (e.target === el) closeModal(el.id);
             });
         });
@@ -927,6 +994,34 @@
         }
 
         // ===== Инвентарь (Складской Учет) =====
+        function openPlannedModal() {
+            if(isInlineEditing) return alert('Завершите групповую правку.');
+            const container = document.getElementById('plannedInputsContainer');
+            let html = '';
+            let currentPlanned = inventoryData.planned || DEFAULT_PLANNED;
+            
+            INVENTORY_MODELS.forEach(model => {
+                let val = currentPlanned[model] !== undefined ? currentPlanned[model] : DEFAULT_PLANNED[model] || 0;
+                html += `<div class="form-group" style="margin-bottom: 8px; display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
+                            <label style="font-weight: 600; font-size: 0.9rem;">${model}</label>
+                            <input type="number" id="plan_${model.replace(/\s+/g, '')}" value="${val}" style="width: 100px; text-align: center; font-weight: bold;">
+                         </div>`;
+            });
+            container.innerHTML = html;
+            openModal('plannedModal');
+        }
+
+        function savePlannedValues() {
+            let updates = {};
+            INVENTORY_MODELS.forEach(model => {
+                let val = parseInt(document.getElementById('plan_' + model.replace(/\s+/g, '')).value) || 0;
+                updates[model] = val;
+            });
+            invRef.child('planned').update(updates).then(() => {
+                closeModal('plannedModal');
+            }).catch(e => alert(e.message));
+        }
+
         function editInventoryCell(td, model, field, currentWarehouse, currentInstallers, currentInstalled) {
             if (td.querySelector('input')) return; 
             
@@ -982,6 +1077,7 @@
         function renderInventory() {
             const tbody = document.getElementById('inventoryTableBody');
             let html = '';
+            let plannedData = inventoryData.planned || DEFAULT_PLANNED;
 
             INVENTORY_MODELS.forEach(model => {
                 let sizeMatch = model.match(/G\d{1,2}/i);
@@ -1004,6 +1100,17 @@
                 if (current_installers < 0) current_installers = 0;
 
                 let total = inv.warehouse + current_installers + installedCount;
+                let plan = plannedData[model] !== undefined ? plannedData[model] : DEFAULT_PLANNED[model];
+
+                let totalStyle = "font-size: 1.1rem; font-weight: bold;";
+                let totalTitle = "";
+                
+                if (total !== plan) {
+                    totalStyle += " color: #991b1b; background-color: #fee2e2; cursor: help;";
+                    totalTitle = `title="Несоответствие! По плану должно быть: ${plan} шт., а по факту: ${total} шт."`;
+                } else {
+                    totalStyle += " color: var(--accent-blue);";
+                }
 
                 html += `<tr>
                     <td><b>${model}</b></td>
@@ -1016,7 +1123,7 @@
                     <td class="text-center" style="font-size: 1.1rem; color: var(--success-color); font-weight: bold;">
                         ${installedCount}
                     </td>
-                    <td class="text-center" style="font-size: 1.1rem; color: var(--accent-blue); font-weight: bold;">
+                    <td class="text-center" style="${totalStyle}" ${totalTitle}>
                         ${total}
                     </td>
                 </tr>`;
@@ -1160,17 +1267,21 @@
                     <td data-field="installer"><b>${item.installer || '-'}</b></td>
                     <td data-field="objectName">${item.objectName || '-'}</td>
                     <td data-field="address" title="${item.address || '-'}">${item.address || '-'}</td>
-                    <td data-field="uirgLocation">${item.uirgLocation || '-'}</td>
+                    <td data-field="consumer">${item.consumer || '-'}</td>
+                    <td data-field="position">${item.position || '-'}</td>
                     <td class="${powerClass}" data-field="totalPower">${item.totalPower || '-'}</td>
                     <td class="text-center"><input type="checkbox" class="passport-checkbox" onchange="updatePassport('${item.id}', this.checked)" ${item.passport ? 'checked' : ''}></td>
                     <td data-field="model"><b style="color:var(--accent-blue);">${item.model || '-'}</b></td>
                     <td class="${serialClass}" data-field="serial">${item.serial || '-'}</td>
-                    <td data-field="controllerSeal">${item.controllerSeal || '-'}</td>
+                    <td data-field="newGasDirection">${item.newGasDirection || '-'}</td>
+                    <td data-field="simCardNumber">${item.simCardNumber || '-'}</td>
                     <td data-field="oldMeterModel">${item.oldMeterModel || '-'}</td>
                     <td data-field="oldMeterSerial">${item.oldMeterSerial || '-'}</td>
                     <td data-field="oldMeterReadings">${item.oldMeterReadings || '-'}</td>
-                    <td data-field="newGasDirection">${item.newGasDirection || '-'}</td>
-                    <td data-field="simCardNumber">${item.simCardNumber || '-'}</td>
+                    <td data-field="controllerSeal">${item.controllerSeal || '-'}</td>
+                    <td data-field="uirgLocation">${item.uirgLocation || '-'}</td>
+                    <td data-field="ls">${item.ls || '-'}</td>
+                    <td data-field="gps">${item.gps || '-'}</td>
                     <td data-field="date">${item.date || '-'}</td>
                     <td class="text-center" style="display:flex; gap: 4px; justify-content:center; align-items:center;">
                         <button class="btn btn-outline btn-small edit-single-btn" onclick="editRecord('${item.id}')" title="Редактировать">✎</button>
@@ -1178,7 +1289,7 @@
                     </td>
                 </tr>`;
             });
-            if (html === '') html = '<tr><td colspan="17" style="text-align:center; padding:24px; color:var(--text-muted);">Нет записей</td></tr>';
+            if (html === '') html = '<tr><td colspan="21" style="text-align:center; padding:24px; color:var(--text-muted);">Нет записей</td></tr>';
             
             tbody.innerHTML = html;
             
@@ -1541,7 +1652,7 @@
         function exportToExcel() {
             if (dbList.length === 0) return alert("Нет данных");
             
-            const headers = ['Монтажник', 'Объект', 'Адрес', 'Расположение', 'Мощн.', 'Паспорт', 'Модель', '№', 'Пломба', 'Ст. модель', 'Ст. №', 'Ст. показ.', 'Направл.', 'SIM', 'Дата'];
+            const headers = ['Монтажник', 'Объект', 'Адрес', 'Потребитель', 'Должность', 'Мощн.', 'Паспорт', 'Модель', '№', 'Направл.', 'SIM', 'Ст. модель', 'Ст. №', 'Ст. показ.', 'Пломба', 'Расположение', 'ЛС', 'GPRS', 'Дата'];
             
             let html = '<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body><table border="1"><tr>';
             headers.forEach(h => html += `<th style="background:#f1f5f9">${h}</th>`);
@@ -1550,9 +1661,10 @@
             dbList.forEach(item => {
                 html += '<tr>';
                 [
-                    item.installer, item.objectName, item.address, item.uirgLocation, item.totalPower, 
-                    item.passport ? 'Да' : 'Нет', item.model, item.serial, item.controllerSeal, 
-                    item.oldMeterModel, item.oldMeterSerial, item.oldMeterReadings, item.newGasDirection, item.simCardNumber, item.date
+                    item.installer, item.objectName, item.address, item.consumer, item.position, item.totalPower, 
+                    item.passport ? 'Да' : 'Нет', item.model, item.serial, item.newGasDirection, item.simCardNumber, 
+                    item.oldMeterModel, item.oldMeterSerial, item.oldMeterReadings, item.controllerSeal, 
+                    item.uirgLocation, item.ls, item.gps, item.date
                 ].forEach(val => html += `<td style="mso-number-format:'\\@';">${val || ''}</td>`);
                 html += '</tr>';
             });

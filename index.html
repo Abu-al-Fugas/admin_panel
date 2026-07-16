@@ -515,7 +515,6 @@
         </section>
     </main>
 
-    <!-- Модальное окно для настройки плана -->
     <div class="modal-overlay" id="plannedModal">
         <div class="modal" style="max-width: 400px;">
             <div class="modal-header"><span>План установок</span><button class="modal-close" onclick="closeModal('plannedModal')">&times;</button></div>
@@ -1022,7 +1021,7 @@
             }).catch(e => alert(e.message));
         }
 
-        function editInventoryCell(td, model, field, currentWarehouse, currentInstallers, currentInstalled) {
+        function editInventoryCell(td, model, field) {
             if (td.querySelector('input')) return; 
             
             let span = td.querySelector('span');
@@ -1049,15 +1048,7 @@
                 
                 let newVal = parseInt(input.value) || 0;
                 let updates = {};
-                
-                if (field === 'warehouse') {
-                    updates = { warehouse: newVal };
-                } else if (field === 'installers') {
-                    updates = {
-                        base_installers: newVal,
-                        offset_installed: currentInstalled
-                    };
-                }
+                updates[field] = newVal;
                 
                 invRef.child(model).update(updates).catch(e => alert(e.message));
                 
@@ -1094,12 +1085,13 @@
                     installedCount = dbList.filter(i => i.model && i.model.trim() === model).length;
                 }
 
-                let inv = inventoryData[model] || { warehouse: 0, base_installers: 0, offset_installed: 0 };
+                let inv = inventoryData[model] || {};
+                let current_warehouse = inv.warehouse || 0;
                 
-                let current_installers = inv.base_installers - (installedCount - (inv.offset_installed || 0));
-                if (current_installers < 0) current_installers = 0;
+                // Читаем из оригинального ключа base_installers
+                let current_installers = inv.base_installers || 0;
 
-                let total = inv.warehouse + current_installers + installedCount;
+                let total = current_warehouse + current_installers + installedCount;
                 let plan = plannedData[model] !== undefined ? plannedData[model] : DEFAULT_PLANNED[model];
 
                 let totalStyle = "font-size: 1.1rem; font-weight: bold;";
@@ -1114,10 +1106,10 @@
 
                 html += `<tr>
                     <td><b>${model}</b></td>
-                    <td class="text-center" style="font-size: 1.1rem; color: var(--text-primary); cursor: pointer;" title="Двойной клик для редактирования" ondblclick="editInventoryCell(this, '${model}', 'warehouse', ${inv.warehouse}, ${current_installers}, ${installedCount})">
-                        <span>${inv.warehouse}</span>
+                    <td class="text-center" style="font-size: 1.1rem; color: var(--text-primary); cursor: pointer;" title="Двойной клик для редактирования" ondblclick="editInventoryCell(this, '${model}', 'warehouse')">
+                        <span>${current_warehouse}</span>
                     </td>
-                    <td class="text-center" style="font-size: 1.1rem; color: var(--warning-color); font-weight: 600; cursor: pointer;" title="Двойной клик для редактирования" ondblclick="editInventoryCell(this, '${model}', 'installers', ${inv.warehouse}, ${current_installers}, ${installedCount})">
+                    <td class="text-center" style="font-size: 1.1rem; color: var(--warning-color); font-weight: 600; cursor: pointer;" title="Двойной клик для редактирования" ondblclick="editInventoryCell(this, '${model}', 'base_installers')">
                         <span>${current_installers}</span>
                     </td>
                     <td class="text-center" style="font-size: 1.1rem; color: var(--success-color); font-weight: bold;">
@@ -1324,17 +1316,16 @@
 
             tr.classList.add('editing-row');
             
-            // ЗАМЕРЯЕМ ширину ячеек
+            // 1. ЗАМЕРЯЕМ ширину всех ячеек в строке до того, как начнем вставлять инпуты
             let fields = Array.from(tr.querySelectorAll('td[data-field]'));
             let widths = fields.map(td => td.getBoundingClientRect().width);
             
+            // 2. ПРИМЕНЯЕМ зафиксированную ширину и вставляем инпуты
             fields.forEach((td, index) => {
                 let field = td.getAttribute('data-field');
                 let val = td.innerText === '-' ? '' : td.innerText;
                 
-                // РАСЧЕТ ШИРИНЫ: Берем текущую ширину, но если текст длинный (особенно после поиска), не даем ячейке сжаться слишком сильно
-                let requiredWidth = val.length * 9 + 32; 
-                let w = Math.max(widths[index], requiredWidth, 60);
+                let w = widths[index];
                 
                 td.style.width = w + 'px';
                 td.style.minWidth = w + 'px';
@@ -1373,10 +1364,12 @@
             if (!isInlineEditing) {
                 let rowsToEdit = Array.from(checkboxes).map(cb => cb.closest('tr'));
                 
+                // 1. ЗАМЕРЯЕМ все строки ДО изменения DOM
                 let measurements = rowsToEdit.map(tr => {
                     return Array.from(tr.querySelectorAll('td[data-field]')).map(td => td.getBoundingClientRect().width);
                 });
 
+                // 2. ВНОСИМ ИЗМЕНЕНИЯ, используя зафиксированные замеры
                 rowsToEdit.forEach((tr, rowIndex) => {
                     tr.classList.add('editing-row');
                     
@@ -1387,8 +1380,7 @@
                         let field = td.getAttribute('data-field');
                         let val = td.innerText === '-' ? '' : td.innerText;
                         
-                        let requiredWidth = val.length * 9 + 32; 
-                        let w = Math.max(widths[index], requiredWidth, 60);
+                        let w = widths[index];
                         
                         td.style.width = w + 'px';
                         td.style.minWidth = w + 'px';

@@ -816,6 +816,9 @@
                     installersCount[i.installer] = (installersCount[i.installer]||0)+1; 
                 }
             });
+            const topInstaller = Object.entries(installersCount).sort((a,b)=>b[1]-a[1])[0];
+            const installerCountLabel = topInstaller ? topInstaller[0] : '-';
+            const installerCountValue = topInstaller ? topInstaller[1] : 0;
 
             const now = new Date();
             const todayStart = new Date(now); todayStart.setHours(7, 0, 0, 0);
@@ -1021,7 +1024,7 @@
             }).catch(e => alert(e.message));
         }
 
-        function editInventoryCell(td, model, field) {
+        function editInventoryCell(td, model, field, currentInstalled) {
             if (td.querySelector('input')) return; 
             
             let span = td.querySelector('span');
@@ -1048,7 +1051,15 @@
                 
                 let newVal = parseInt(input.value) || 0;
                 let updates = {};
-                updates[field] = newVal;
+                
+                if (field === 'warehouse') {
+                    updates = { warehouse: newVal };
+                } else if (field === 'base_installers') {
+                    updates = {
+                        base_installers: newVal,
+                        offset_installed: currentInstalled
+                    };
+                }
                 
                 invRef.child(model).update(updates).catch(e => alert(e.message));
                 
@@ -1088,8 +1099,11 @@
                 let inv = inventoryData[model] || {};
                 let current_warehouse = inv.warehouse || 0;
                 
-                // Читаем из оригинального ключа base_installers
-                let current_installers = inv.base_installers || 0;
+                // Восстанавливаем калькуляцию с сохранением старых данных
+                let base_inst = inv.base_installers || 0;
+                let offset_inst = inv.offset_installed || 0;
+                let current_installers = base_inst - (installedCount - offset_inst);
+                if (current_installers < 0) current_installers = 0;
 
                 let total = current_warehouse + current_installers + installedCount;
                 let plan = plannedData[model] !== undefined ? plannedData[model] : DEFAULT_PLANNED[model];
@@ -1106,10 +1120,10 @@
 
                 html += `<tr>
                     <td><b>${model}</b></td>
-                    <td class="text-center" style="font-size: 1.1rem; color: var(--text-primary); cursor: pointer;" title="Двойной клик для редактирования" ondblclick="editInventoryCell(this, '${model}', 'warehouse')">
+                    <td class="text-center" style="font-size: 1.1rem; color: var(--text-primary); cursor: pointer;" title="Двойной клик для редактирования" ondblclick="editInventoryCell(this, '${model}', 'warehouse', ${installedCount})">
                         <span>${current_warehouse}</span>
                     </td>
-                    <td class="text-center" style="font-size: 1.1rem; color: var(--warning-color); font-weight: 600; cursor: pointer;" title="Двойной клик для редактирования" ondblclick="editInventoryCell(this, '${model}', 'base_installers')">
+                    <td class="text-center" style="font-size: 1.1rem; color: var(--warning-color); font-weight: 600; cursor: pointer;" title="Двойной клик для редактирования" ondblclick="editInventoryCell(this, '${model}', 'base_installers', ${installedCount})">
                         <span>${current_installers}</span>
                     </td>
                     <td class="text-center" style="font-size: 1.1rem; color: var(--success-color); font-weight: bold;">

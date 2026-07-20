@@ -7,6 +7,8 @@
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <!-- Библиотека SheetJS для работы с настоящими файлами Excel (.xlsx) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -458,6 +460,7 @@
                 </div>
 
                 <div style="display:flex; justify-content:flex-end; gap:8px; flex: 1;">
+                    <button class="btn btn-warning" onclick="openExcelImportModal()">Импорт из Excel</button>
                     <button class="btn btn-primary" onclick="exportToExcel()">Выгрузить Excel</button>
                 </div>
             </div>
@@ -525,6 +528,26 @@
             <div class="modal-footer">
                 <button class="btn btn-outline" onclick="closeModal('plannedModal')">Отмена</button>
                 <button class="btn btn-primary" onclick="savePlannedValues()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для импорта из EXCEL -->
+    <div class="modal-overlay" id="importExcelModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header"><span>Импорт и обновление из Excel</span><button class="modal-close" onclick="closeModal('importExcelModal')">&times;</button></div>
+            <div class="modal-body">
+                <p style="font-size:0.9rem; color:var(--text-muted); margin-bottom: 12px;">Загрузите отредактированный файл <b>.xlsx</b> или <b>.xls</b>. <br><br><b>Важно:</b> Система обновляет записи по столбцу <b>ID_Системы</b>. Не удаляйте этот столбец в Excel, иначе создадутся дубликаты!</p>
+                <div style="margin-bottom:12px; text-align: center; padding: 20px; border: 2px dashed var(--border-color); border-radius: var(--radius);">
+                    <label class="btn btn-primary" style="display:inline-block; cursor:pointer;">
+                        Выбрать файл Excel
+                        <input type="file" id="importExcelFileInput" accept=".xlsx, .xls, .csv" style="display:none;" onchange="processExcelImport(event)">
+                    </label>
+                </div>
+                <div id="excelImportStatus" style="margin-top:12px; font-weight:500; text-align: center;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('importExcelModal')">Закрыть</button>
             </div>
         </div>
     </div>
@@ -767,6 +790,8 @@
 
         document.querySelectorAll('.modal-overlay').forEach(el => {
             el.addEventListener('click', (e) => {
+                // Если кликнули на темный фон модального окна Excel - закрываем его
+                if (el.id === 'importExcelModal' && e.target === el) closeModal(el.id);
                 if (el.id === 'editModal' || el.id === 'plannedModal') return; 
                 if (e.target === el) closeModal(el.id);
             });
@@ -777,7 +802,6 @@
             const grid = document.getElementById('statsGrid');
             const total = dbList.length;
             
-            // Подсчет ошибок в таблице
             let errorCount = 0;
             let serialCounts = {};
             dbList.forEach(item => {
@@ -816,9 +840,6 @@
                     installersCount[i.installer] = (installersCount[i.installer]||0)+1; 
                 }
             });
-            const topInstaller = Object.entries(installersCount).sort((a,b)=>b[1]-a[1])[0];
-            const installerCountLabel = topInstaller ? topInstaller[0] : '-';
-            const installerCountValue = topInstaller ? topInstaller[1] : 0;
 
             const now = new Date();
             const todayStart = new Date(now); todayStart.setHours(7, 0, 0, 0);
@@ -1024,12 +1045,11 @@
             }).catch(e => alert(e.message));
         }
 
-        // Обновленная функция изменения данных в таблице "Остаток"
         function editInventoryCell(td, model, field, currentInstalled) {
             if (td.querySelector('input')) return; 
             
             let span = td.querySelector('span');
-            let currentVal = parseInt(span.innerText) || 0; // Сохраняем текущее значение, чтобы потом посчитать разницу
+            let currentVal = parseInt(span.innerText) || 0;
             
             let input = document.createElement('input');
             input.type = 'number';
@@ -1056,18 +1076,16 @@
                 if (field === 'warehouse') {
                     updates = { warehouse: newVal };
                 } else if (field === 'base_installers') {
-                    // Считаем, на сколько изменилось количество у монтажников
                     let diff = newVal - currentVal;
                     let inv = inventoryData[model] || {};
                     let current_warehouse = inv.warehouse || 0;
                     
-                    // Обновляем количество на складе (вычитаем из склада то, что передали монтажникам)
                     let new_warehouse = current_warehouse - diff;
                     
                     updates = {
                         base_installers: newVal,
                         offset_installed: currentInstalled,
-                        warehouse: new_warehouse // Сохраняем новое значение склада в базу
+                        warehouse: new_warehouse 
                     };
                 }
                 
@@ -1109,7 +1127,6 @@
                 let inv = inventoryData[model] || {};
                 let current_warehouse = inv.warehouse || 0;
                 
-                // Восстанавливаем калькуляцию с сохранением старых данных
                 let base_inst = inv.base_installers || 0;
                 let offset_inst = inv.offset_installed || 0;
                 let current_installers = base_inst - (installedCount - offset_inst);
@@ -1215,11 +1232,9 @@
             if (isInlineEditing) return; 
             const tbody = document.getElementById('fullTableBody');
             
-            // Запоминаем отмеченные чекбоксы до обновления таблицы
             const checkedIds = new Set(Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value));
             const selectAllState = document.getElementById('selectAllCheckbox') ? document.getElementById('selectAllCheckbox').checked : false;
             
-            // Подсчет дубликатов для валидации
             let serialCounts = {};
             dbList.forEach(item => {
                 if (item.serial && item.serial !== '-') {
@@ -1230,7 +1245,6 @@
             let html = '';
             dbList.forEach(item => {
                 
-                // Валидация
                 let isError = false;
                 let serialError = false;
                 let powerError = false;
@@ -1275,7 +1289,6 @@
                 let serialClass = serialError ? 'error-cell' : '';
                 let powerClass = powerError ? 'error-cell' : '';
 
-                // Проверяем, был ли этот чекбокс нажат до обновления
                 let isChecked = checkedIds.has(item.id) ? 'checked' : '';
 
                 html += `<tr class="${rowClass}" title="${errorTitle}" ondblclick="enableRowEdit(this, '${item.id}', event)">
@@ -1309,14 +1322,12 @@
             
             tbody.innerHTML = html;
             
-            // Возвращаем статус главному чекбоксу "Выбрать все"
             const mainCheckbox = document.getElementById('selectAllCheckbox');
             if (mainCheckbox) mainCheckbox.checked = selectAllState;
             
             applyColumnWidths();
-            filterTable(); // Восстанавливаем фильтр поиска
+            filterTable(); 
 
-            // Восстанавливаем сортировку
             const savedSortCol = localStorage.getItem('botstm_sortCol');
             const savedSortType = localStorage.getItem('botstm_sortType');
             const savedSortDir = localStorage.getItem('botstm_sortDir');
@@ -1340,11 +1351,9 @@
 
             tr.classList.add('editing-row');
             
-            // 1. ЗАМЕРЯЕМ ширину всех ячеек в строке до того, как начнем вставлять инпуты
             let fields = Array.from(tr.querySelectorAll('td[data-field]'));
             let widths = fields.map(td => td.getBoundingClientRect().width);
             
-            // 2. ПРИМЕНЯЕМ зафиксированную ширину и вставляем инпуты
             fields.forEach((td, index) => {
                 let field = td.getAttribute('data-field');
                 let val = td.innerText === '-' ? '' : td.innerText;
@@ -1388,12 +1397,10 @@
             if (!isInlineEditing) {
                 let rowsToEdit = Array.from(checkboxes).map(cb => cb.closest('tr'));
                 
-                // 1. ЗАМЕРЯЕМ все строки ДО изменения DOM
                 let measurements = rowsToEdit.map(tr => {
                     return Array.from(tr.querySelectorAll('td[data-field]')).map(td => td.getBoundingClientRect().width);
                 });
 
-                // 2. ВНОСИМ ИЗМЕНЕНИЯ, используя зафиксированные замеры
                 rowsToEdit.forEach((tr, rowIndex) => {
                     tr.classList.add('editing-row');
                     
@@ -1535,7 +1542,6 @@
             const dir = forceDir ? forceDir : (sortDirection[n] === "asc" ? "desc" : "asc");
             sortDirection[n] = dir;
             
-            // Сохраняем сортировку для последующих рендеров
             localStorage.setItem('botstm_sortCol', n);
             localStorage.setItem('botstm_sortType', type);
             localStorage.setItem('botstm_sortDir', dir);
@@ -1664,35 +1670,160 @@
         }
         function openImportModal() { document.getElementById('importTextArea').value = ''; document.getElementById('importStatus').innerHTML = ''; openModal('importModal'); }
 
-        // Обновленная функция экспорта в Excel с исправлением даты
+
+        // ===== НОВЫЙ ИМПОРТ ИЗ EXCEL =====
+        function openExcelImportModal() {
+            document.getElementById('importExcelFileInput').value = '';
+            document.getElementById('excelImportStatus').innerHTML = '';
+            openModal('importExcelModal');
+        }
+
+        function processExcelImport(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const status = document.getElementById('excelImportStatus');
+            status.innerHTML = 'Чтение файла...';
+            status.style.color = 'var(--text-primary)';
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const data = evt.target.result;
+                    const workbook = XLSX.read(data, {type: 'array'});
+                    const firstSheetName = workbook.SheetNames[0];
+                    const worksheet = workbook.Sheets[firstSheetName];
+                    const json = XLSX.utils.sheet_to_json(worksheet, {defval: "", raw: false});
+
+                    status.innerHTML = `Обработка ${json.length} строк... Пожалуйста, подождите.`;
+
+                    let promises = [];
+                    let updated = 0;
+                    let added = 0;
+
+                    // Связываем названия колонок Excel с ключами Firebase
+                    const excelMap = {
+                        'Монтажник': 'installer', 'Объект': 'objectName', 'Адрес': 'address',
+                        'Потребитель': 'consumer', 'Должность': 'position', 'Мощн.': 'totalPower',
+                        'Модель': 'model', '№': 'serial', 'Направл.': 'newGasDirection',
+                        'SIM': 'simCardNumber', 'Ст. модель': 'oldMeterModel', 'Ст. №': 'oldMeterSerial',
+                        'Ст. показ.': 'oldMeterReadings', 'Пломба': 'controllerSeal', 'Расположение': 'uirgLocation',
+                        'ЛС': 'ls', 'GPRS': 'gps', 'Дата': 'date'
+                    };
+
+                    // Карта существующих серийных номеров (на случай если удалят ID_Системы)
+                    const serialMap = {};
+                    dbList.forEach(i => { if (i.serial && i.serial !== '-') serialMap[i.serial] = i; });
+
+                    json.forEach(row => {
+                        let recordId = row['ID_Системы'];
+                        let serialVal = row['№'] ? String(row['№']).trim() : null;
+                        
+                        // Обработка чекбокса "Паспорт"
+                        let isPassport = false;
+                        let pVal = String(row['Паспорт']).toLowerCase().trim();
+                        if (pVal === 'да' || pVal === '1' || pVal === 'true' || pVal === '+') isPassport = true;
+
+                        let updateData = { passport: isPassport };
+                        
+                        // Собираем остальные данные из строки
+                        for (let excelKey in excelMap) {
+                            if (row.hasOwnProperty(excelKey)) {
+                                let val = String(row[excelKey]).trim();
+                                updateData[excelMap[excelKey]] = val === '-' ? '' : val;
+                            }
+                        }
+
+                        // Ищем, какую запись обновить
+                        let existingItemById = dbList.find(i => i.id === recordId);
+                        let existingItemBySerial = serialVal ? serialMap[serialVal] : null;
+                        let targetId = null;
+
+                        if (existingItemById) {
+                            targetId = existingItemById.id; // Нашли по ID
+                        } else if (existingItemBySerial) {
+                            targetId = existingItemBySerial.id; // Нашли по серийному номеру
+                        }
+
+                        if (targetId) {
+                            // Обновляем старую запись
+                            promises.push(dbRef.child(targetId).update(updateData));
+                            updated++;
+                        } else {
+                            // Если строка не пустая - создаем новую запись
+                            if(Object.keys(updateData).some(k => updateData[k] && updateData[k] !== '' && k !== 'passport')) {
+                                updateData.timestamp = Date.now();
+                                promises.push(dbRef.push(updateData));
+                                added++;
+                            }
+                        }
+                    });
+
+                    Promise.all(promises).then(() => {
+                        status.innerHTML = `Успешно! Обновлено: ${updated}, Добавлено новых: ${added}.`;
+                        status.style.color = 'var(--success-color)';
+                        setTimeout(() => closeModal('importExcelModal'), 4000);
+                    }).catch(err => {
+                        status.innerHTML = 'Ошибка загрузки в базу: ' + err.message;
+                        status.style.color = 'var(--danger-color)';
+                    });
+
+                } catch (error) {
+                    status.innerHTML = 'Ошибка обработки файла: Убедитесь что загружаете правильный Excel файл.';
+                    status.style.color = 'var(--danger-color)';
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // ===== ОБНОВЛЕННЫЙ ЭКСПОРТ В EXCEL =====
         function exportToExcel() {
             if (dbList.length === 0) return alert("Нет данных");
             
-            const headers = ['Монтажник', 'Объект', 'Адрес', 'Потребитель', 'Должность', 'Мощн.', 'Паспорт', 'Модель', '№', 'Направл.', 'SIM', 'Ст. модель', 'Ст. №', 'Ст. показ.', 'Пломба', 'Расположение', 'ЛС', 'GPRS', 'Дата'];
+            // Заголовки (теперь с ID)
+            const headers = ['ID_Системы', 'Монтажник', 'Объект', 'Адрес', 'Потребитель', 'Должность', 'Мощн.', 'Паспорт', 'Модель', '№', 'Направл.', 'SIM', 'Ст. модель', 'Ст. №', 'Ст. показ.', 'Пломба', 'Расположение', 'ЛС', 'GPRS', 'Дата'];
             
-            let html = '<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8"></head><body><table border="1"><tr>';
-            headers.forEach(h => html += `<th style="background:#f1f5f9">${h}</th>`);
-            html += '</tr>';
+            let data = [headers];
             
             dbList.forEach(item => {
-                // Берем только дату, отрезаем всё, что после запятой (время)
                 let exportDate = item.date ? item.date.split(',')[0].trim() : '';
-
-                html += '<tr>';
-                [
-                    item.installer, item.objectName, item.address, item.consumer, item.position, item.totalPower, 
-                    item.passport ? 'Да' : 'Нет', item.model, item.serial, item.newGasDirection, item.simCardNumber, 
-                    item.oldMeterModel, item.oldMeterSerial, item.oldMeterReadings, item.controllerSeal, 
-                    item.uirgLocation, item.ls, item.gps, exportDate
-                ].forEach(val => html += `<td style="mso-number-format:'\\@';">${val || ''}</td>`);
-                html += '</tr>';
+                
+                let row = [
+                    item.id, // Скрытый ID системы
+                    item.installer || '',
+                    item.objectName || '',
+                    item.address || '',
+                    item.consumer || '',
+                    item.position || '',
+                    item.totalPower || '',
+                    item.passport ? 'Да' : 'Нет',
+                    item.model || '',
+                    item.serial || '',
+                    item.newGasDirection || '',
+                    item.simCardNumber || '',
+                    item.oldMeterModel || '',
+                    item.oldMeterSerial || '',
+                    item.oldMeterReadings || '',
+                    item.controllerSeal || '',
+                    item.uirgLocation || '',
+                    item.ls || '',
+                    item.gps || '',
+                    exportDate
+                ];
+                data.push(row);
             });
-            html += '</table></body></html>';
             
-            const a = document.createElement("a");
-            a.href = URL.createObjectURL(new Blob([html], { type: "application/vnd.ms-excel" })); 
-            a.download = `Otchet_${new Date().toISOString().slice(0,10)}.xls`;
-            a.click();
+            // Создаем настоящий Excel файл
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            
+            // Немного красоты - задаем ширину столбцов
+            ws['!cols'] = [{wch: 25}, {wch: 20}, {wch: 30}, {wch: 35}]; 
+
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Установки");
+            
+            // Скачиваем как настоящий xlsx
+            XLSX.writeFile(wb, `Otchet_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
         // ===== Инициализация изменения ширины столбцов =====

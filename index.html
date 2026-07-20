@@ -1024,11 +1024,12 @@
             }).catch(e => alert(e.message));
         }
 
+        // Обновленная функция изменения данных в таблице "Остаток"
         function editInventoryCell(td, model, field, currentInstalled) {
             if (td.querySelector('input')) return; 
             
             let span = td.querySelector('span');
-            let currentVal = span.innerText;
+            let currentVal = parseInt(span.innerText) || 0; // Сохраняем текущее значение, чтобы потом посчитать разницу
             
             let input = document.createElement('input');
             input.type = 'number';
@@ -1055,9 +1056,18 @@
                 if (field === 'warehouse') {
                     updates = { warehouse: newVal };
                 } else if (field === 'base_installers') {
+                    // Считаем, на сколько изменилось количество у монтажников
+                    let diff = newVal - currentVal;
+                    let inv = inventoryData[model] || {};
+                    let current_warehouse = inv.warehouse || 0;
+                    
+                    // Обновляем количество на складе (вычитаем из склада то, что передали монтажникам)
+                    let new_warehouse = current_warehouse - diff;
+                    
                     updates = {
                         base_installers: newVal,
-                        offset_installed: currentInstalled
+                        offset_installed: currentInstalled,
+                        warehouse: new_warehouse // Сохраняем новое значение склада в базу
                     };
                 }
                 
@@ -1654,7 +1664,7 @@
         }
         function openImportModal() { document.getElementById('importTextArea').value = ''; document.getElementById('importStatus').innerHTML = ''; openModal('importModal'); }
 
-        // ===== Excel Export =====
+        // Обновленная функция экспорта в Excel с исправлением даты
         function exportToExcel() {
             if (dbList.length === 0) return alert("Нет данных");
             
@@ -1665,12 +1675,15 @@
             html += '</tr>';
             
             dbList.forEach(item => {
+                // Берем только дату, отрезаем всё, что после запятой (время)
+                let exportDate = item.date ? item.date.split(',')[0].trim() : '';
+
                 html += '<tr>';
                 [
                     item.installer, item.objectName, item.address, item.consumer, item.position, item.totalPower, 
                     item.passport ? 'Да' : 'Нет', item.model, item.serial, item.newGasDirection, item.simCardNumber, 
                     item.oldMeterModel, item.oldMeterSerial, item.oldMeterReadings, item.controllerSeal, 
-                    item.uirgLocation, item.ls, item.gps, item.date
+                    item.uirgLocation, item.ls, item.gps, exportDate
                 ].forEach(val => html += `<td style="mso-number-format:'\\@';">${val || ''}</td>`);
                 html += '</tr>';
             });

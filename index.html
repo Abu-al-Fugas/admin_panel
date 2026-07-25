@@ -7,7 +7,6 @@
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
-    <!-- Библиотека SheetJS для работы с настоящими файлами Excel (.xlsx) -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -25,6 +24,7 @@
             --text-muted: #64748b;
             --accent-cyan: #0284c7;
             --accent-blue: #2563eb;
+            --batch-new-color: #22c55e;
             --danger-color: #ef4444;
             --success-color: #10b981;
             --warning-color: #f59e0b;
@@ -46,7 +46,6 @@
             padding: 10px;
         }
         
-        /* Шапка */
         header { 
             background: var(--glass-bg); 
             backdrop-filter: blur(12px);
@@ -90,7 +89,6 @@
         .dot { width: 8px; height: 8px; border-radius: 50%; background-color: var(--text-muted); transition: 0.3s; }
         .dot.online { background-color: var(--success-color); box-shadow: 0 0 8px var(--success-color); }
 
-        /* Навигация */
         nav { display: flex; gap: 16px; flex-wrap: wrap; }
         nav button { 
             background: none; 
@@ -109,14 +107,12 @@
 
         main { margin: 0; padding: 0; flex: 1; width: 100%; }
         
-        /* Ограничиваем ширину для Сводки и Остатка */
         #summary, #inventory { max-width: 1400px; margin: 0 auto; }
         
         .tab-content { display: none; animation: fadeIn 0.2s ease; }
         .tab-content.active { display: block; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
         
-        /* Панель управления и фильтры */
         .controls { 
             display: flex; 
             justify-content: space-between; 
@@ -132,7 +128,6 @@
         }
         .filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
         
-        /* Кнопки */
         .btn { 
             padding: 8px 16px; 
             border: 1px solid transparent; 
@@ -157,6 +152,8 @@
         .btn-warning:hover { background-color: #d97706; }
         .btn-outline { background-color: transparent; border-color: var(--border-color); color: var(--text-primary); }
         .btn-outline:hover { background-color: #f1f5f9; border-color: #cbd5e1; }
+        .btn-frozen { background-color: #e2e8f0; color: var(--text-muted); }
+        .btn-frozen:hover { background-color: #cbd5e1; }
         
         .btn-small { padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; }
 
@@ -175,7 +172,6 @@
         input:focus, select:focus, textarea:focus { border-color: var(--accent-cyan); background: #ffffff; }
         textarea { min-height: 100px; width: 100%; }
         
-        /* Статистика */
         .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 20px; }
         .stat-card { 
             background: var(--bg-secondary); 
@@ -190,7 +186,6 @@
         .stat-number { font-family: 'Orbitron', sans-serif; font-size: 1.8rem; font-weight: 700; color: var(--accent-cyan); margin-bottom: 4px; }
         .stat-label { font-size: 0.8rem; color: var(--text-secondary); font-weight: 500; }
 
-        /* Таблицы */
         .table-responsive { 
             width: 100%; 
             background: var(--bg-secondary); 
@@ -211,7 +206,6 @@
             white-space: nowrap; 
         }
         
-        /* Индивидуальная ширина для специфичных столбцов */
         th[data-col="serial"], td[data-field="serial"] { padding-left: 28px; padding-right: 28px; } 
         th[data-col="simCardNumber"], td[data-field="simCardNumber"] { padding-left: 31px; padding-right: 31px; } 
         th[data-col="oldMeterSerial"], td[data-field="oldMeterSerial"] { padding-left: 31px; padding-right: 31px; } 
@@ -235,136 +229,56 @@
         tr:hover td { background-color: #f8fafc; }
         tr:last-child td { border-bottom: none; }
         
-        /* ===== ВАЛИДАЦИЯ (Подсветка ошибок) ===== */
         tr.error-row td { background-color: #fee2e2 !important; }
         tr.error-row:hover td { background-color: #fca5a5 !important; }
         td.error-cell { color: #991b1b !important; font-weight: bold !important; }
 
         .text-right { text-align: right; }
         .text-center { text-align: center; }
+        .text-success { color: var(--success-color) !important; font-weight: bold; }
         
-        /* Изменение ширины столбцов (Ресайз) */
         th.resizable { position: sticky; }
         .resizer {
-            position: absolute;
-            right: 0;
-            top: 0;
-            width: 8px;
-            height: 100%;
-            cursor: col-resize;
-            user-select: none;
-            z-index: 12;
-            border-right: 1px solid transparent;
+            position: absolute; right: 0; top: 0; width: 8px; height: 100%;
+            cursor: col-resize; user-select: none; z-index: 12; border-right: 1px solid transparent;
         }
         .resizer:hover, .resizer.resizing {
-            background-color: rgba(2, 132, 199, 0.1);
-            border-right: 2px solid var(--accent-cyan);
+            background-color: rgba(2, 132, 199, 0.1); border-right: 2px solid var(--accent-cyan);
         }
         
-        td[data-field="objectName"], td[data-field="address"] {
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
+        td[data-field="objectName"], td[data-field="address"] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-        /* Чекбоксы выделения строк */
-        .row-checkbox, #selectAllCheckbox { 
-            cursor: pointer; 
-            width: 16px; 
-            height: 16px; 
-            margin: 0; 
-            accent-color: var(--accent-cyan);
-        }
+        .row-checkbox, #selectAllCheckbox { cursor: pointer; width: 16px; height: 16px; margin: 0; accent-color: var(--accent-cyan); }
         
-        /* Модифицированный чекбокс паспорта (Эмодзи) */
         .passport-checkbox { 
-            appearance: none;
-            -webkit-appearance: none;
-            background: transparent;
-            width: 16px; 
-            height: 16px; 
-            cursor: pointer; 
-            margin: 0; 
-            position: relative;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border: none;
-            box-shadow: none;
-            transform: none;
+            appearance: none; -webkit-appearance: none; background: transparent; width: 16px; height: 16px; 
+            cursor: pointer; margin: 0; position: relative; display: inline-flex; align-items: center; justify-content: center;
+            border: none; box-shadow: none; transform: none;
         }
-        .passport-checkbox::before {
-            content: '📄';
-            font-size: 16px;
-            position: absolute;
-            opacity: 0.6;
-            filter: grayscale(100%);
-            transition: 0.2s;
-        }
-        .passport-checkbox:checked::before {
-            opacity: 1;
-            filter: none;
-        }
-        .passport-checkbox:checked::after {
-            content: '✔';
-            color: #10b981;
-            position: absolute;
-            font-size: 14px;
-            font-weight: 900;
-            bottom: -6px;
-            right: -6px;
-            text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff;
-        }
+        .passport-checkbox::before { content: '📄'; font-size: 16px; position: absolute; opacity: 0.6; filter: grayscale(100%); transition: 0.2s; }
+        .passport-checkbox:checked::before { opacity: 1; filter: none; }
+        .passport-checkbox:checked::after { content: '✔'; color: #10b981; position: absolute; font-size: 14px; font-weight: 900; bottom: -6px; right: -6px; text-shadow: 1px 1px 0 #fff, -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff; }
 
         .sort-icon { display: inline-block; width: 12px; font-size: 0.7rem; color: var(--accent-cyan); margin-left: 4px;}
         
-        /* ===== РЕШЕНИЕ ПРОБЛЕМЫ С ОБРЕЗАНИЕМ И СМЕЩЕНИЕМ ТАБЛИЦЫ ===== */
-        .editing-row td { 
-            background-color: #eff6ff !important; 
-        }
+        .editing-row td { background-color: #eff6ff !important; }
         
         .inline-edit-input { 
-            width: calc(100% + 24px); 
-            margin: -6px -12px; 
-            padding: 6px 10px; 
-            
-            font-size: 0.85rem; 
-            border: 2px solid var(--accent-cyan); 
-            border-radius: 6px; 
-            box-sizing: border-box;
-            background: #ffffff;
-            color: var(--text-primary);
-            font-family: 'Inter', sans-serif;
-            outline: none;
+            width: calc(100% + 24px); margin: -6px -12px; padding: 6px 10px; font-size: 0.85rem; 
+            border: 2px solid var(--accent-cyan); border-radius: 6px; box-sizing: border-box;
+            background: #ffffff; color: var(--text-primary); font-family: 'Inter', sans-serif; outline: none;
         }
         .inline-edit-input:focus { background-color: #f0f9ff; }
 
-        /* Модальные окна */
         .modal-overlay { 
-            display: none; 
-            position: fixed; 
-            top: 0; left: 0; 
-            width: 100%; height: 100%; 
-            background: rgba(15, 23, 42, 0.5); 
-            backdrop-filter: blur(4px);
-            z-index: 1000; 
-            justify-content: center; 
-            align-items: center; 
-            overflow-y: auto; 
-            padding: 20px; 
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+            background: rgba(15, 23, 42, 0.5); backdrop-filter: blur(4px); z-index: 1000; 
+            justify-content: center; align-items: center; overflow-y: auto; padding: 20px; 
         }
         .modal-overlay.active { display: flex; }
         .modal { 
-            background: var(--bg-secondary); 
-            padding: 24px; 
-            border-radius: var(--radius); 
-            width: 95%; 
-            max-width: 900px; 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.15); 
-            max-height: 90vh; 
-            display: flex; 
-            flex-direction: column; 
-            animation: modalFade 0.2s ease;
+            background: var(--bg-secondary); padding: 24px; border-radius: var(--radius); width: 95%; max-width: 900px; 
+            box-shadow: 0 20px 50px rgba(0,0,0,0.15); max-height: 90vh; display: flex; flex-direction: column; animation: modalFade 0.2s ease;
         }
         @keyframes modalFade { from { opacity: 0; transform: scale(0.98) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         
@@ -390,6 +304,20 @@
 
         #loadingOverlay { position: fixed; top:0; left:0; width:100%; height:100%; background: var(--bg-primary); z-index:9999; display:flex; flex-direction: column; justify-content:center; align-items:center; color:var(--text-primary); font-size:1.1rem; font-weight:600; }
         
+        .batch-container { margin-bottom: 24px; background: var(--bg-secondary); border-radius: var(--radius); box-shadow: var(--shadow-glow); border: 1px solid var(--glass-border); overflow: hidden; transition: all 0.3s; }
+        .batch-header { padding: 14px 20px; background: #f8fafc; cursor: pointer; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); user-select: none; }
+        .batch-header:hover { background: #f1f5f9; }
+        .batch-title { font-weight: 600; color: var(--text-primary); font-size: 1.05rem; display: flex; align-items: center; gap: 8px; }
+        .batch-title .chevron { font-size: 0.8rem; transition: transform 0.3s; color: var(--text-muted); }
+        .batch-container.collapsed .chevron { transform: rotate(-90deg); }
+        .batch-container.collapsed .batch-content { display: none; }
+        .batch-actions { display: flex; gap: 8px; }
+        .batch-content { border-top: none; }
+        .batch-content .table-responsive { box-shadow: none; border: none; border-radius: 0; max-height: none;}
+
+        .frozen-row td { background-color: #f8fafc; color: var(--text-muted); }
+        .frozen-row b { color: var(--text-secondary) !important; }
+
         @media (max-width: 768px) {
             header { position: static; flex-direction: column; padding: 12px; gap: 12px; }
             .logo { width: 100%; justify-content: center; }
@@ -401,6 +329,7 @@
             #fullTableControls { position: static !important; flex-direction: column; align-items: stretch; }
             #fullTableControls > div { justify-content: center !important; flex: none !important; width: 100%; }
             table { font-size: 0.75rem; }
+            .batch-header { flex-direction: column; align-items: flex-start; gap: 12px; }
         }
     </style>
 </head>
@@ -498,36 +427,77 @@
         </section>
 
         <section id="inventory" class="tab-content">
-            <div class="controls" style="margin-bottom: 12px; display: flex; justify-content: flex-end; padding: 8px 16px; background: var(--bg-secondary); border-radius: var(--radius); box-shadow: var(--shadow-glow); border: 1px solid var(--glass-border);">
-                <button class="btn btn-primary btn-small" onclick="openPlannedModal()">Настроить план установок</button>
+            <div class="controls" style="margin-bottom: 16px; display: flex; justify-content: flex-end; padding: 12px 16px; background: var(--bg-secondary); border-radius: var(--radius); box-shadow: var(--shadow-glow); border: 1px solid var(--glass-border);">
+                <button class="btn btn-primary" onclick="openAddBatchModal()">+ Добавить партию</button>
             </div>
-            <div class="table-responsive">
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width: 32%;">Модель</th>
-                            <th class="text-center" style="width: 17%;">Склад</th>
-                            <th class="text-center" style="width: 17%;">У монтажников</th>
-                            <th class="text-center" style="width: 17%;">Установлено</th>
-                            <th class="text-center" style="width: 17%;">Итого</th>
-                        </tr>
-                    </thead>
-                    <tbody id="inventoryTableBody"></tbody>
-                </table>
+            <div id="inventoryBatchesContainer">
+                <!-- Сюда будут рендериться партии -->
             </div>
         </section>
     </main>
 
+    <!-- Модалки для партий и позиций -->
+    <div class="modal-overlay" id="addBatchModal">
+        <div class="modal" style="max-width: 400px;">
+            <div class="modal-header"><span>Новая партия</span><button class="modal-close" onclick="closeModal('addBatchModal')">&times;</button></div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Название партии (например, Партия 1775)</label>
+                    <input type="text" id="newBatchNameInput">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('addBatchModal')">Отмена</button>
+                <button class="btn btn-primary" onclick="saveNewBatch()">Создать</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="addItemModal">
+        <div class="modal" style="max-width: 500px;">
+            <div class="modal-header"><span id="addItemTitle">Добавить позицию</span><button class="modal-close" onclick="closeModal('addItemModal')">&times;</button></div>
+            <div class="modal-body">
+                <div class="form-grid">
+                    <div class="form-group" id="batchSelectGroup">
+                        <label>Партия</label>
+                        <select id="i_batchId"></select>
+                    </div>
+                    <div class="form-group">
+                        <label>Отображаемое название (например, Миртек G6)</label>
+                        <input type="text" id="i_displayName">
+                    </div>
+                    <div class="form-group">
+                        <label>Ключевое слово бренда (по нему будет идти поиск, например: миртек)</label>
+                        <input type="text" id="i_brandKey">
+                    </div>
+                    <div class="form-group">
+                        <label>Ключевое слово размера (например: g6)</label>
+                        <input type="text" id="i_sizeKey">
+                    </div>
+                </div>
+                <!-- Скрытое поле для ID (оставляем для логики редактирования, но план выводим в отдельное окно) -->
+                <input type="hidden" id="i_planned" value="0">
+                <input type="hidden" id="i_itemId">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('addItemModal')">Отмена</button>
+                <button class="btn btn-primary" onclick="saveItem()">Сохранить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно для настройки плана -->
     <div class="modal-overlay" id="plannedModal">
         <div class="modal" style="max-width: 400px;">
-            <div class="modal-header"><span>План установок</span><button class="modal-close" onclick="closeModal('plannedModal')">&times;</button></div>
+            <div class="modal-header"><span id="plannedModalTitle">План установок</span><button class="modal-close" onclick="closeModal('plannedModal')">&times;</button></div>
             <div class="modal-body" id="plannedBody">
-                <p style="margin-bottom: 16px; font-size: 0.85rem; color: var(--text-secondary);">Укажите плановое количество счетчиков. Оно будет использоваться для проверки итогов на вкладке "Остаток".</p>
+                <p style="margin-bottom: 16px; font-size: 0.85rem; color: var(--text-secondary);">Укажите плановое количество счетчиков для этой партии. Если факт не сойдется с планом, ячейка подсветится красным.</p>
                 <div id="plannedInputsContainer"></div>
+                <input type="hidden" id="planned_batchId">
             </div>
             <div class="modal-footer">
                 <button class="btn btn-outline" onclick="closeModal('plannedModal')">Отмена</button>
-                <button class="btn btn-primary" onclick="savePlannedValues()">Сохранить</button>
+                <button class="btn btn-primary" onclick="saveBatchPlannedValues()">Сохранить</button>
             </div>
         </div>
     </div>
@@ -552,6 +522,7 @@
         </div>
     </div>
 
+    <!-- Старые модалки (Редактирование, Детализация, Импорт txt, Удаление) -->
     <div class="modal-overlay" id="editModal">
         <div class="modal">
             <div class="modal-header"><span id="editTitle">Редактирование записи</span><button class="modal-close" onclick="closeModal('editModal')">&times;</button></div>
@@ -732,16 +703,6 @@
             'G65': 110
         };
 
-        const DEFAULT_PLANNED = {
-            'СМТ-Смарт G4': 98,
-            'СМТ-Смарт G6': 236,
-            'СМТ-Смарт G10': 70,
-            'СМТ- Комплекс G16': 52,
-            'СМТ- Комплекс G25': 43,
-            'СМТ- Комплекс G40': 75,
-            'СМТ- Комплекс G65': 34
-        };
-
         function getExpectedPrefix(modelName) {
             if (!modelName) return null;
             let norm = modelName.replace(/\s+/g, '').toUpperCase();
@@ -771,18 +732,14 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const dbRef = database.ref('bot_installations');
-        const invRef = database.ref('bot_inventory');
+        // Старая база для безопасности не удаляется, мы работаем с новой веткой для партий
+        const invV2Ref = database.ref('bot_inventory_batches'); 
 
         let dbList = [];
-        let inventoryData = {};
+        let inventoryV2Data = {}; 
         let sortDirection = {};
         let isInlineEditing = false; 
-
-        // Типоразмеры для складского учета
-        const INVENTORY_MODELS = [
-            'СМТ-Смарт G4', 'СМТ-Смарт G6', 'СМТ-Смарт G10',
-            'СМТ- Комплекс G16', 'СМТ- Комплекс G25', 'СМТ- Комплекс G40', 'СМТ- Комплекс G65'
-        ];
+        window.allSignatures = []; // Для хранения всех уникальных пар ключей
 
         // ===== UI Основы =====
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
@@ -790,9 +747,8 @@
 
         document.querySelectorAll('.modal-overlay').forEach(el => {
             el.addEventListener('click', (e) => {
-                // Если кликнули на темный фон модального окна Excel - закрываем его
                 if (el.id === 'importExcelModal' && e.target === el) closeModal(el.id);
-                if (el.id === 'editModal' || el.id === 'plannedModal') return; 
+                if (el.id === 'editModal' || el.id === 'addBatchModal' || el.id === 'addItemModal' || el.id === 'plannedModal') return; 
                 if (e.target === el) closeModal(el.id);
             });
         });
@@ -871,7 +827,6 @@
             `;
         }
 
-        // ===== Детализация за сегодня =====
         function showTodayDetails() {
             const now = new Date();
             const todayStart = new Date(now); todayStart.setHours(7, 0, 0, 0);
@@ -1016,37 +971,155 @@
             }
         }
 
-        // ===== Инвентарь (Складской Учет) =====
-        function openPlannedModal() {
-            if(isInlineEditing) return alert('Завершите групповую правку.');
+        // ===== ИНВЕНТАРЬ V2 (Партии, План, Ручное закрытие, Перелив) =====
+
+        function toggleBatch(batchId) {
+            const container = document.getElementById(`batch_${batchId}`);
+            const isCollapsed = container.classList.contains('collapsed');
+            if (isCollapsed) {
+                container.classList.remove('collapsed');
+                invV2Ref.child(batchId).update({ isExpanded: true });
+            } else {
+                container.classList.add('collapsed');
+                invV2Ref.child(batchId).update({ isExpanded: false });
+            }
+        }
+
+        function openAddBatchModal() {
+            document.getElementById('newBatchNameInput').value = '';
+            openModal('addBatchModal');
+        }
+
+        function saveNewBatch() {
+            const name = document.getElementById('newBatchNameInput').value.trim();
+            if (!name) return alert('Введите название партии!');
+            
+            invV2Ref.push({
+                name: name,
+                isExpanded: true,
+                order: Date.now()
+            }).then(() => closeModal('addBatchModal')).catch(e => alert(e.message));
+        }
+
+        // --- Настройка плана для партии ---
+        function openBatchPlannedModal(batchId, event) {
+            event.stopPropagation(); 
+            let batchData = inventoryV2Data[batchId];
+            if (!batchData || !batchData.items) return alert('В этой партии нет позиций для настройки плана.');
+
+            document.getElementById('plannedModalTitle').innerText = 'План: ' + batchData.name;
+            document.getElementById('planned_batchId').value = batchId;
+
             const container = document.getElementById('plannedInputsContainer');
             let html = '';
-            let currentPlanned = inventoryData.planned || DEFAULT_PLANNED;
             
-            INVENTORY_MODELS.forEach(model => {
-                let val = currentPlanned[model] !== undefined ? currentPlanned[model] : DEFAULT_PLANNED[model] || 0;
+            let sortedItems = Object.entries(batchData.items).sort((a,b) => a[1].order - b[1].order);
+            sortedItems.forEach(([itemId, itemData]) => {
+                let val = itemData.planned || 0;
                 html += `<div class="form-group" style="margin-bottom: 8px; display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                            <label style="font-weight: 600; font-size: 0.9rem;">${model}</label>
-                            <input type="number" id="plan_${model.replace(/\s+/g, '')}" value="${val}" style="width: 100px; text-align: center; font-weight: bold;">
+                            <label style="font-weight: 600; font-size: 0.9rem;">${itemData.displayName}</label>
+                            <input type="number" id="plan_${itemId}" value="${val}" style="width: 100px; text-align: center; font-weight: bold;" min="0">
                          </div>`;
             });
+            
             container.innerHTML = html;
             openModal('plannedModal');
         }
 
-        function savePlannedValues() {
+        function saveBatchPlannedValues() {
+            const batchId = document.getElementById('planned_batchId').value;
+            if (!batchId || !inventoryV2Data[batchId] || !inventoryV2Data[batchId].items) return;
+
             let updates = {};
-            INVENTORY_MODELS.forEach(model => {
-                let val = parseInt(document.getElementById('plan_' + model.replace(/\s+/g, '')).value) || 0;
-                updates[model] = val;
+            Object.keys(inventoryV2Data[batchId].items).forEach(itemId => {
+                let input = document.getElementById('plan_' + itemId);
+                if (input) {
+                    let val = parseInt(input.value) || 0;
+                    updates[itemId + '/planned'] = val;
+                }
             });
-            invRef.child('planned').update(updates).then(() => {
+
+            invV2Ref.child(batchId).child('items').update(updates).then(() => {
                 closeModal('plannedModal');
             }).catch(e => alert(e.message));
         }
 
-        function editInventoryCell(td, model, field, currentInstalled) {
+        function openAddItemModal(batchId = null) {
+            const select = document.getElementById('i_batchId');
+            select.innerHTML = '';
+            
+            let sortedBatches = Object.entries(inventoryV2Data).sort((a,b) => a[1].order - b[1].order);
+            sortedBatches.forEach(([bId, bData]) => {
+                let opt = document.createElement('option');
+                opt.value = bId;
+                opt.innerText = bData.name;
+                if (bId === batchId) opt.selected = true;
+                select.appendChild(opt);
+            });
+            select.disabled = false;
+            
+            document.getElementById('addItemTitle').innerText = 'Добавить позицию';
+            document.getElementById('i_itemId').value = '';
+            document.getElementById('i_displayName').value = '';
+            document.getElementById('i_brandKey').value = '';
+            document.getElementById('i_sizeKey').value = '';
+            
+            openModal('addItemModal');
+        }
+
+        function editItem(batchId, itemId) {
+            let itemData = inventoryV2Data[batchId].items[itemId];
+            if (!itemData) return;
+
+            document.getElementById('i_batchId').innerHTML = `<option value="${batchId}">${inventoryV2Data[batchId].name}</option>`;
+            document.getElementById('i_batchId').disabled = true;
+
+            document.getElementById('i_itemId').value = itemId;
+            document.getElementById('i_displayName').value = itemData.displayName || '';
+            document.getElementById('i_brandKey').value = itemData.brandKey || '';
+            document.getElementById('i_sizeKey').value = itemData.sizeKey || '';
+
+            document.getElementById('addItemTitle').innerText = 'Редактировать позицию';
+            openModal('addItemModal');
+        }
+
+        function saveItem() {
+            const batchId = document.getElementById('i_batchId').value;
+            const itemId = document.getElementById('i_itemId').value;
+            const displayName = document.getElementById('i_displayName').value.trim();
+            const brandKey = document.getElementById('i_brandKey').value.trim().toLowerCase();
+            const sizeKey = document.getElementById('i_sizeKey').value.trim().toLowerCase();
+            
+            if (!batchId || !displayName || !brandKey || !sizeKey) return alert('Заполните все текстовые поля!');
+            
+            let data = {
+                displayName: displayName,
+                brandKey: brandKey,
+                sizeKey: sizeKey
+            };
+
+            if (itemId) {
+                invV2Ref.child(batchId).child('items').child(itemId).update(data)
+                .then(() => closeModal('addItemModal')).catch(e => alert(e.message));
+            } else {
+                data.planned = 0; // План по умолчанию 0 при создании новой
+                data.warehouse = 0;
+                data.base_installers = 0;
+                data.offset_installed = 0;
+                data.closed = false;
+                data.closedAtCount = 0;
+                data.order = Date.now();
+                
+                invV2Ref.child(batchId).child('items').push(data)
+                .then(() => closeModal('addItemModal')).catch(e => alert(e.message));
+            }
+        }
+
+        function editInventoryCellV2(td, batchId, itemId, field, effectiveInstalled) {
             if (td.querySelector('input')) return; 
+            
+            let itemData = inventoryV2Data[batchId].items[itemId];
+            if (itemData.closed) return alert('Эта позиция закрыта. Чтобы изменить данные, сначала откройте её.');
             
             let span = td.querySelector('span');
             let currentVal = parseInt(span.innerText) || 0;
@@ -1077,20 +1150,17 @@
                     updates = { warehouse: newVal };
                 } else if (field === 'base_installers') {
                     let diff = newVal - currentVal;
-                    let inv = inventoryData[model] || {};
-                    let current_warehouse = inv.warehouse || 0;
-                    
+                    let current_warehouse = itemData.warehouse || 0;
                     let new_warehouse = current_warehouse - diff;
                     
                     updates = {
                         base_installers: newVal,
-                        offset_installed: currentInstalled,
+                        offset_installed: effectiveInstalled, 
                         warehouse: new_warehouse 
                     };
                 }
                 
-                invRef.child(model).update(updates).catch(e => alert(e.message));
-                
+                invV2Ref.child(batchId).child('items').child(itemId).update(updates).catch(e => alert(e.message));
                 td.innerHTML = `<span>${newVal}</span>`;
             }
             
@@ -1104,65 +1174,175 @@
             };
         }
 
+        function toggleCloseStatus(batchId, itemId, isCurrentlyClosed, effectiveInstalled) {
+            let actionText = isCurrentlyClosed ? 'открыть' : 'закрыть (заморозить)';
+            if (!confirm(`Вы уверены, что хотите ${actionText} эту позицию?`)) return;
+
+            let updates = {};
+            updates['closed'] = !isCurrentlyClosed;
+            updates['closedAtCount'] = isCurrentlyClosed ? 0 : effectiveInstalled;
+            invV2Ref.child(batchId).child('items').child(itemId).update(updates).catch(e => alert(e.message));
+        }
+
+        function deleteItem(batchId, itemId) {
+            if (confirm('ВНИМАНИЕ! Удаление позиции навсегда сотрет введенные вручную остатки на складе и у монтажников для этой строки. Вы точно хотите удалить эту позицию?')) {
+                invV2Ref.child(batchId).child('items').child(itemId).remove();
+            }
+        }
+
         function renderInventory() {
-            const tbody = document.getElementById('inventoryTableBody');
-            let html = '';
-            let plannedData = inventoryData.planned || DEFAULT_PLANNED;
+            const container = document.getElementById('inventoryBatchesContainer');
+            container.innerHTML = '';
+            if (!inventoryV2Data) return;
 
-            INVENTORY_MODELS.forEach(model => {
-                let sizeMatch = model.match(/G\d{1,2}/i);
-                let sizeToFind = sizeMatch ? sizeMatch[0].toUpperCase() : null;
-                
-                let installedCount = 0;
-                if (sizeToFind) {
-                    installedCount = dbList.filter(i => {
-                        if (!i.model) return false;
-                        let mMatch = i.model.match(/G\d{1,2}/i);
-                        return mMatch && mMatch[0].toUpperCase() === sizeToFind;
-                    }).length;
-                } else {
-                    installedCount = dbList.filter(i => i.model && i.model.trim() === model).length;
+            let sigs = new Set();
+            window.allSignatures = [];
+            Object.values(inventoryV2Data).forEach(b => {
+                if(b.items) {
+                    Object.values(b.items).forEach(item => {
+                        let bk = item.brandKey ? item.brandKey.toLowerCase().trim() : '';
+                        let sk = item.sizeKey ? item.sizeKey.toLowerCase().trim() : '';
+                        let key = bk + '_' + sk;
+                        if (!sigs.has(key)) {
+                            sigs.add(key);
+                            window.allSignatures.push({ key: key, b: bk, s: sk });
+                        }
+                    });
                 }
-
-                let inv = inventoryData[model] || {};
-                let current_warehouse = inv.warehouse || 0;
-                
-                let base_inst = inv.base_installers || 0;
-                let offset_inst = inv.offset_installed || 0;
-                let current_installers = base_inst - (installedCount - offset_inst);
-                if (current_installers < 0) current_installers = 0;
-
-                let total = current_warehouse + current_installers + installedCount;
-                let plan = plannedData[model] !== undefined ? plannedData[model] : DEFAULT_PLANNED[model];
-
-                let totalStyle = "font-size: 1.1rem; font-weight: bold;";
-                let totalTitle = "";
-                
-                if (total !== plan) {
-                    totalStyle += " color: #991b1b; background-color: #fee2e2; cursor: help;";
-                    totalTitle = `title="Несоответствие! По плану должно быть: ${plan} шт., а по факту: ${total} шт."`;
-                } else {
-                    totalStyle += " color: var(--accent-blue);";
-                }
-
-                html += `<tr>
-                    <td><b>${model}</b></td>
-                    <td class="text-center" style="font-size: 1.1rem; color: var(--text-primary); cursor: pointer;" title="Двойной клик для редактирования" ondblclick="editInventoryCell(this, '${model}', 'warehouse', ${installedCount})">
-                        <span>${current_warehouse}</span>
-                    </td>
-                    <td class="text-center" style="font-size: 1.1rem; color: var(--warning-color); font-weight: 600; cursor: pointer;" title="Двойной клик для редактирования" ondblclick="editInventoryCell(this, '${model}', 'base_installers', ${installedCount})">
-                        <span>${current_installers}</span>
-                    </td>
-                    <td class="text-center" style="font-size: 1.1rem; color: var(--success-color); font-weight: bold;">
-                        ${installedCount}
-                    </td>
-                    <td class="text-center" style="${totalStyle}" ${totalTitle}>
-                        ${total}
-                    </td>
-                </tr>`;
             });
 
-            tbody.innerHTML = html;
+            let rawTotals = {};
+            dbList.forEach(item => {
+                if (!item.model) return;
+                let m = item.model.toLowerCase();
+                
+                let matchedSig = null;
+                for (let sig of window.allSignatures) {
+                    if (m.includes(sig.b) && m.includes(sig.s)) {
+                        matchedSig = sig.key;
+                        break;
+                    }
+                }
+                if (matchedSig) {
+                    rawTotals[matchedSig] = (rawTotals[matchedSig] || 0) + 1;
+                }
+            });
+
+            let signatureRemaining = { ...rawTotals };
+            let processedItemsInstalled = {}; 
+            
+            let sortedBatches = Object.entries(inventoryV2Data).sort((a,b) => a[1].order - b[1].order);
+            
+            sortedBatches.forEach(([batchId, batchData]) => {
+                if(batchData.items) {
+                    let sortedItems = Object.entries(batchData.items).sort((a,b) => a[1].order - b[1].order);
+                    sortedItems.forEach(([itemId, itemData]) => {
+                        let sigKey = (itemData.brandKey || '').toLowerCase().trim() + '_' + (itemData.sizeKey || '').toLowerCase().trim();
+                        let remaining = signatureRemaining[sigKey] || 0;
+                        
+                        if (itemData.closed) {
+                            processedItemsInstalled[itemId] = itemData.closedAtCount || 0;
+                            signatureRemaining[sigKey] = Math.max(0, remaining - (itemData.closedAtCount || 0));
+                        } else {
+                            processedItemsInstalled[itemId] = remaining;
+                            signatureRemaining[sigKey] = 0; 
+                        }
+                    });
+                }
+            });
+
+            sortedBatches.forEach(([batchId, batchData]) => {
+                let isCollapsedClass = batchData.isExpanded ? '' : 'collapsed';
+                
+                let html = `
+                <div class="batch-container ${isCollapsedClass}" id="batch_${batchId}">
+                    <div class="batch-header" onclick="toggleBatch('${batchId}')">
+                        <div class="batch-title"><span class="chevron">▼</span> ${batchData.name}</div>
+                        <div class="batch-actions" onclick="event.stopPropagation()">
+                            <button class="btn btn-outline btn-small" onclick="openBatchPlannedModal('${batchId}', event)">Настроить план</button>
+                            <button class="btn btn-outline btn-small" onclick="openAddItemModal('${batchId}')">+ Добавить позицию</button>
+                        </div>
+                    </div>
+                    <div class="batch-content">
+                        <div class="table-responsive">
+                            <table>
+                                <thead>
+                                    <tr>
+                                        <th style="width: 25%;">Модель</th>
+                                        <th class="text-center" style="width: 15%;">Склад</th>
+                                        <th class="text-center" style="width: 15%;">У монтажников</th>
+                                        <th class="text-center" style="width: 15%;">Установлено</th>
+                                        <th class="text-center" style="width: 15%;">Итого</th>
+                                        <th class="text-center" style="width: 15%;">Статус</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                `;
+                
+                if (batchData.items && Object.keys(batchData.items).length > 0) {
+                    let sortedItems = Object.entries(batchData.items).sort((a,b) => a[1].order - b[1].order);
+                    
+                    sortedItems.forEach(([itemId, itemData]) => {
+                        let effectiveInstalled = processedItemsInstalled[itemId] || 0;
+                        
+                        let current_warehouse = itemData.warehouse || 0;
+                        let base_inst = itemData.base_installers || 0;
+                        let offset_inst = itemData.offset_installed || 0;
+                        let current_installers = base_inst - (effectiveInstalled - offset_inst);
+                        if (current_installers < 0) current_installers = 0;
+
+                        let total = current_warehouse + current_installers + effectiveInstalled;
+                        let plan = itemData.planned || 0;
+
+                        let totalStyle = "font-size: 1.1rem; font-weight: bold;";
+                        let totalTitle = "";
+                        
+                        // Логика проверки ошибок плана
+                        if (plan > 0 && total !== plan) {
+                            totalStyle += " color: #991b1b; background-color: #fee2e2; cursor: help;";
+                            totalTitle = `title="Несоответствие! По плану должно быть: ${plan} шт., а по факту: ${total} шт."`;
+                        } else {
+                            totalStyle += " color: var(--accent-blue);";
+                        }
+                        
+                        let rowClass = itemData.closed ? 'frozen-row' : '';
+                        
+                        let btnStatus = itemData.closed 
+                            ? `<button class="btn btn-outline btn-small" onclick="toggleCloseStatus('${batchId}', '${itemId}', true, ${effectiveInstalled})" title="Открыть перелив">🔓</button>` 
+                            : `<button class="btn btn-outline btn-small" style="background-color: #f1f5f9; color: var(--text-primary);" onclick="toggleCloseStatus('${batchId}', '${itemId}', false, ${effectiveInstalled})" title="Закрыть (заморозить) позицию">🔒</button>`;
+
+                        html += `<tr class="${rowClass}">
+                            <td>
+                                <b>${itemData.displayName}</b>
+                            </td>
+                            <td class="text-center" style="font-size: 1.1rem; color: var(--text-primary); cursor: pointer;" title="Двойной клик для редактирования" ondblclick="editInventoryCellV2(this, '${batchId}', '${itemId}', 'warehouse', ${effectiveInstalled})">
+                                <span>${current_warehouse}</span>
+                            </td>
+                            <td class="text-center" style="font-size: 1.1rem; color: var(--warning-color); font-weight: 600; cursor: pointer;" title="Двойной клик для редактирования" ondblclick="editInventoryCellV2(this, '${batchId}', '${itemId}', 'base_installers', ${effectiveInstalled})">
+                                <span>${current_installers}</span>
+                            </td>
+                            <td class="text-center" style="font-size: 1.1rem;">
+                                <span class="text-success">${effectiveInstalled}</span>
+                            </td>
+                            <td class="text-center" style="${totalStyle}" ${totalTitle}>
+                                ${total}
+                            </td>
+                            <td class="text-center">
+                                <div style="display:flex; justify-content:center; gap:4px;">
+                                    ${btnStatus}
+                                    <button class="btn btn-outline btn-small" style="padding: 4px 8px;" onclick="editItem('${batchId}', '${itemId}')" title="Редактировать ключи и название">✎</button>
+                                    <button class="btn btn-outline btn-small" style="color:var(--danger-color); padding: 4px 8px;" onclick="deleteItem('${batchId}', '${itemId}')" title="Удалить">✕</button>
+                                </div>
+                            </td>
+                        </tr>`;
+                    });
+                } else {
+                    html += `<tr><td colspan="6" class="text-center" style="color: var(--text-muted); padding: 20px;">Нет позиций в этой партии</td></tr>`;
+                }
+                
+                html += `</tbody></table></div></div></div>`;
+                container.innerHTML += html;
+            });
         }
 
         // ===== Таблица и Паспорта =====
@@ -1177,7 +1357,6 @@
             }
         }
 
-        // ===== Живой поиск по таблице =====
         function filterTable() {
             const input = document.getElementById("searchInput");
             if (!input) return;
@@ -1196,7 +1375,6 @@
             }
         }
 
-        // ===== Применение сохраненной ширины столбцов =====
         function applyColumnWidths() {
             ['objectName', 'address'].forEach(colId => {
                 const savedWidth = localStorage.getItem('botstm_colWidth_' + colId);
@@ -1217,7 +1395,6 @@
             });
         }
 
-        // ===== Обработчик горячих клавиш при редактировании =====
         function handleInlineEditKeydown(e) {
             if (e.key === 'Enter') {
                 e.preventDefault();
@@ -1241,6 +1418,95 @@
                     serialCounts[item.serial] = (serialCounts[item.serial] || 0) + 1;
                 }
             });
+
+            // Раскрашивание партий
+            let itemColors = {};
+            if (inventoryV2Data) {
+                let sigs = [];
+                Object.values(inventoryV2Data).forEach(b => {
+                    if(b.items) {
+                        Object.values(b.items).forEach(item => {
+                            let bk = item.brandKey ? item.brandKey.toLowerCase().trim() : '';
+                            let sk = item.sizeKey ? item.sizeKey.toLowerCase().trim() : '';
+                            let key = bk + '_' + sk;
+                            if (!sigs.some(s => s.key === key)) sigs.push({ key: key, b: bk, s: sk });
+                        });
+                    }
+                });
+
+                let parseDateForSort = str => {
+                    if (!str || str === '-') return 0;
+                    let parts = str.split(',');
+                    let dParts = (parts[0] ? parts[0].trim() : '').split('.');
+                    let tParts = (parts[1] ? parts[1].trim() : '00:00').split(':');
+                    if(dParts.length !== 3) return 0;
+                    return new Date(dParts[2], parseInt(dParts[1])-1, dParts[0], tParts[0] ? parseInt(tParts[0]) : 0, tParts[1] ? parseInt(tParts[1]) : 0).getTime();
+                };
+
+                let itemsBySig = {};
+                dbList.forEach(item => {
+                    if (!item.model) return;
+                    let m = item.model.toLowerCase();
+                    let matchedSig = null;
+                    for (let sig of sigs) {
+                        if (m.includes(sig.b) && m.includes(sig.s)) {
+                            matchedSig = sig.key;
+                            break;
+                        }
+                    }
+                    if (matchedSig) {
+                        if (!itemsBySig[matchedSig]) itemsBySig[matchedSig] = [];
+                        itemsBySig[matchedSig].push(item);
+                    }
+                });
+
+                let sortedBatches = Object.entries(inventoryV2Data).sort((a,b) => a[1].order - b[1].order);
+
+                for (let sigKey in itemsBySig) {
+                    // Сортируем от самых старых к самым новым
+                    itemsBySig[sigKey].sort((a, b) => {
+                        let timeA = a.timestamp || parseDateForSort(a.date);
+                        let timeB = b.timestamp || parseDateForSort(b.date);
+                        return timeA - timeB; 
+                    });
+
+                    let trackingBatches = [];
+                    sortedBatches.forEach(([bId, bData]) => {
+                        if (bData.items) {
+                            let itemsInBatch = Object.values(bData.items).filter(i => {
+                                let k = (i.brandKey || '').toLowerCase().trim() + '_' + (i.sizeKey || '').toLowerCase().trim();
+                                return k === sigKey;
+                            });
+                            if (itemsInBatch.length > 0) trackingBatches.push(itemsInBatch[0]);
+                        }
+                    });
+
+                    let currentBatchIndex = 0;
+                    let countInCurrentBatch = 0;
+
+                    itemsBySig[sigKey].forEach(record => {
+                        let currentBatch = trackingBatches[currentBatchIndex];
+                        if (currentBatch) {
+                            if (currentBatch.closed) {
+                                if (countInCurrentBatch < currentBatch.closedAtCount) {
+                                    itemColors[record.id] = currentBatchIndex === 0 ? 'var(--accent-blue)' : 'var(--batch-new-color)';
+                                    countInCurrentBatch++;
+                                } else {
+                                    currentBatchIndex++;
+                                    currentBatch = trackingBatches[currentBatchIndex];
+                                    countInCurrentBatch = 1;
+                                    itemColors[record.id] = currentBatchIndex === 0 ? 'var(--accent-blue)' : 'var(--batch-new-color)';
+                                }
+                            } else {
+                                itemColors[record.id] = currentBatchIndex === 0 ? 'var(--accent-blue)' : 'var(--batch-new-color)';
+                                countInCurrentBatch++;
+                            }
+                        } else {
+                            itemColors[record.id] = currentBatchIndex === 0 ? 'var(--accent-blue)' : 'var(--batch-new-color)';
+                        }
+                    });
+                }
+            }
 
             let html = '';
             dbList.forEach(item => {
@@ -1290,6 +1556,7 @@
                 let powerClass = powerError ? 'error-cell' : '';
 
                 let isChecked = checkedIds.has(item.id) ? 'checked' : '';
+                let modelColor = itemColors[item.id] || 'var(--accent-blue)';
 
                 html += `<tr class="${rowClass}" title="${errorTitle}" ondblclick="enableRowEdit(this, '${item.id}', event)">
                     <td class="text-center"><input type="checkbox" class="row-checkbox" value="${item.id}" ${isChecked}></td>
@@ -1300,7 +1567,7 @@
                     <td data-field="position">${item.position || '-'}</td>
                     <td class="${powerClass}" data-field="totalPower">${item.totalPower || '-'}</td>
                     <td class="text-center"><input type="checkbox" class="passport-checkbox" onchange="updatePassport('${item.id}', this.checked)" ${item.passport ? 'checked' : ''}></td>
-                    <td data-field="model"><b style="color:var(--accent-blue);">${item.model || '-'}</b></td>
+                    <td data-field="model"><b style="color:${modelColor};">${item.model || '-'}</b></td>
                     <td class="${serialClass}" data-field="serial">${item.serial || '-'}</td>
                     <td data-field="newGasDirection">${item.newGasDirection || '-'}</td>
                     <td data-field="simCardNumber">${item.simCardNumber || '-'}</td>
@@ -1671,7 +1938,7 @@
         function openImportModal() { document.getElementById('importTextArea').value = ''; document.getElementById('importStatus').innerHTML = ''; openModal('importModal'); }
 
 
-        // ===== НОВЫЙ ИМПОРТ ИЗ EXCEL =====
+        // ===== ИМПОРТ ИЗ EXCEL =====
         function openExcelImportModal() {
             document.getElementById('importExcelFileInput').value = '';
             document.getElementById('excelImportStatus').innerHTML = '';
@@ -1701,7 +1968,6 @@
                     let updated = 0;
                     let added = 0;
 
-                    // Связываем названия колонок Excel с ключами Firebase
                     const excelMap = {
                         'Монтажник': 'installer', 'Объект': 'objectName', 'Адрес': 'address',
                         'Потребитель': 'consumer', 'Должность': 'position', 'Мощн.': 'totalPower',
@@ -1711,7 +1977,6 @@
                         'ЛС': 'ls', 'GPRS': 'gps', 'Дата': 'date'
                     };
 
-                    // Карта существующих серийных номеров (на случай если удалят ID_Системы)
                     const serialMap = {};
                     dbList.forEach(i => { if (i.serial && i.serial !== '-') serialMap[i.serial] = i; });
 
@@ -1719,14 +1984,12 @@
                         let recordId = row['ID_Системы'];
                         let serialVal = row['№'] ? String(row['№']).trim() : null;
                         
-                        // Обработка чекбокса "Паспорт"
                         let isPassport = false;
                         let pVal = String(row['Паспорт']).toLowerCase().trim();
                         if (pVal === 'да' || pVal === '1' || pVal === 'true' || pVal === '+') isPassport = true;
 
                         let updateData = { passport: isPassport };
                         
-                        // Собираем остальные данные из строки
                         for (let excelKey in excelMap) {
                             if (row.hasOwnProperty(excelKey)) {
                                 let val = String(row[excelKey]).trim();
@@ -1734,23 +1997,20 @@
                             }
                         }
 
-                        // Ищем, какую запись обновить
                         let existingItemById = dbList.find(i => i.id === recordId);
                         let existingItemBySerial = serialVal ? serialMap[serialVal] : null;
                         let targetId = null;
 
                         if (existingItemById) {
-                            targetId = existingItemById.id; // Нашли по ID
+                            targetId = existingItemById.id;
                         } else if (existingItemBySerial) {
-                            targetId = existingItemBySerial.id; // Нашли по серийному номеру
+                            targetId = existingItemBySerial.id;
                         }
 
                         if (targetId) {
-                            // Обновляем старую запись
                             promises.push(dbRef.child(targetId).update(updateData));
                             updated++;
                         } else {
-                            // Если строка не пустая - создаем новую запись
                             if(Object.keys(updateData).some(k => updateData[k] && updateData[k] !== '' && k !== 'passport')) {
                                 updateData.timestamp = Date.now();
                                 promises.push(dbRef.push(updateData));
@@ -1776,11 +2036,10 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // ===== ОБНОВЛЕННЫЙ ЭКСПОРТ В EXCEL =====
+        // ===== ЭКСПОРТ В EXCEL =====
         function exportToExcel() {
             if (dbList.length === 0) return alert("Нет данных");
             
-            // Заголовки (теперь с ID)
             const headers = ['ID_Системы', 'Монтажник', 'Объект', 'Адрес', 'Потребитель', 'Должность', 'Мощн.', 'Паспорт', 'Модель', '№', 'Направл.', 'SIM', 'Ст. модель', 'Ст. №', 'Ст. показ.', 'Пломба', 'Расположение', 'ЛС', 'GPRS', 'Дата'];
             
             let data = [headers];
@@ -1789,7 +2048,7 @@
                 let exportDate = item.date ? item.date.split(',')[0].trim() : '';
                 
                 let row = [
-                    item.id, // Скрытый ID системы
+                    item.id,
                     item.installer || '',
                     item.objectName || '',
                     item.address || '',
@@ -1813,16 +2072,12 @@
                 data.push(row);
             });
             
-            // Создаем настоящий Excel файл
             const ws = XLSX.utils.aoa_to_sheet(data);
-            
-            // Немного красоты - задаем ширину столбцов
             ws['!cols'] = [{wch: 25}, {wch: 20}, {wch: 30}, {wch: 35}]; 
 
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Установки");
             
-            // Скачиваем как настоящий xlsx
             XLSX.writeFile(wb, `Otchet_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
@@ -1876,16 +2131,58 @@
             });
         }
 
+        // ===== БЕЗОПАСНАЯ МИГРАЦИЯ ДАННЫХ ПРИ ПЕРВОМ ЗАПУСКЕ =====
+        invV2Ref.on('value', snap => {
+            if (!snap.exists()) {
+                database.ref('bot_inventory').once('value', oldSnap => {
+                    let oldData = oldSnap.val() || {};
+                    let batch1Id = 'batch_' + Date.now();
+                    let newData = {};
+                    newData[batch1Id] = {
+                        name: "Партия 608",
+                        isExpanded: true,
+                        order: Date.now(),
+                        items: {}
+                    };
+                    
+                    const INVENTORY_MODELS = ['СМТ-Смарт G4', 'СМТ-Смарт G6', 'СМТ-Смарт G10', 'СМТ- Комплекс G16', 'СМТ- Комплекс G25', 'СМТ- Комплекс G40', 'СМТ- Комплекс G65'];
+                    
+                    INVENTORY_MODELS.forEach((m, idx) => {
+                        let brand = m.toLowerCase().includes('комплекс') ? 'комплекс' : 'смарт';
+                        let sizeMatch = m.match(/G\d{1,2}/i);
+                        let size = sizeMatch ? sizeMatch[0].toLowerCase() : '';
+                        
+                        let oldItem = oldData[m] || {};
+                        let planned = (oldData.planned && oldData.planned[m]) !== undefined ? oldData.planned[m] : 0;
+                        
+                        let itemId = 'item_' + Date.now() + '_' + idx;
+                        newData[batch1Id].items[itemId] = {
+                            displayName: m,
+                            brandKey: brand,
+                            sizeKey: size,
+                            warehouse: oldItem.warehouse || 0,
+                            base_installers: oldItem.base_installers || 0,
+                            offset_installed: oldItem.offset_installed || 0,
+                            closed: false,
+                            closedAtCount: 0,
+                            planned: planned,
+                            order: idx
+                        };
+                    });
+                    
+                    invV2Ref.set(newData);
+                });
+            } else {
+                inventoryV2Data = snap.val();
+                if(!isInlineEditing) renderInventory();
+            }
+        });
+
         // ===== Firebase Listeners =====
         database.ref('.info/connected').on('value', snap => {
             const dot = document.getElementById('connDot'), text = document.getElementById('connText');
             if (snap.val()) { dot.classList.add('online'); text.innerText = 'В сети'; text.style.color = 'var(--success-color)'; }
             else { dot.classList.remove('online'); text.innerText = 'Офлайн'; text.style.color = 'var(--text-muted)'; }
-        });
-
-        invRef.on('value', snap => {
-            inventoryData = snap.val() || {};
-            if(!isInlineEditing) renderInventory();
         });
 
         dbRef.on('value', snap => {

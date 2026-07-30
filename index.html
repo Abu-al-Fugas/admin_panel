@@ -475,7 +475,6 @@
                         <input type="text" id="i_sizeKey">
                     </div>
                 </div>
-                <!-- Скрытое поле для ID (оставляем для логики редактирования, но план выводим в отдельное окно) -->
                 <input type="hidden" id="i_planned" value="0">
                 <input type="hidden" id="i_itemId">
             </div>
@@ -703,18 +702,19 @@
             'G65': 110
         };
 
+        // ИЗМЕНЕНИЕ: Возвращаем массив возможных правильных префиксов
         function getExpectedPrefix(modelName) {
             if (!modelName) return null;
             let norm = modelName.replace(/\s+/g, '').toUpperCase();
             norm = norm.replace(/C/g, 'С').replace(/M/g, 'М').replace(/T/g, 'Т');
             
-            if (norm.includes('G40')) return '20625';
-            if (norm.includes('G65')) return '20825';
-            if (norm.includes('G25')) return '20525';
-            if (norm.includes('G16')) return '20425';
-            if (norm.includes('G10')) return '56325';
-            if (norm.includes('G6')) return '56225';
-            if (norm.includes('G4')) return '56125';
+            if (norm.includes('G40')) return ['20625'];
+            if (norm.includes('G65')) return ['20825'];
+            if (norm.includes('G25')) return ['20525'];
+            if (norm.includes('G16')) return ['20425'];
+            if (norm.includes('G10')) return ['56325'];
+            if (norm.includes('G6'))  return ['56225', '15226']; // Ожидаются оба варианта для G6
+            if (norm.includes('G4'))  return ['56125'];
             return null;
         }
 
@@ -732,7 +732,6 @@
         firebase.initializeApp(firebaseConfig);
         const database = firebase.database();
         const dbRef = database.ref('bot_installations');
-        // Старая база для безопасности не удаляется, мы работаем с новой веткой для партий
         const invV2Ref = database.ref('bot_inventory_batches'); 
 
         let dbList = [];
@@ -771,8 +770,11 @@
                 if (item.serial && item.serial !== '-') {
                     let digits = item.serial.replace(/\D/g, ''); 
                     let isDuplicate = serialCounts[item.serial] > 1;
-                    let expectedPrefix = getExpectedPrefix(item.model);
-                    let wrongPrefix = expectedPrefix && !item.serial.startsWith(expectedPrefix);
+                    
+                    let expectedPrefixes = getExpectedPrefix(item.model);
+                    // Ошибка, если ни один из разрешенных префиксов не совпадает с началом номера
+                    let wrongPrefix = expectedPrefixes && !expectedPrefixes.some(prefix => item.serial.startsWith(prefix));
+                    
                     let wrongLength = digits.length !== 11;
                     if (isDuplicate || wrongPrefix || wrongLength) isError = true;
                 }
@@ -1001,7 +1003,6 @@
             }).then(() => closeModal('addBatchModal')).catch(e => alert(e.message));
         }
 
-        // --- Настройка плана для партии ---
         function openBatchPlannedModal(batchId, event) {
             event.stopPropagation(); 
             let batchData = inventoryV2Data[batchId];
@@ -1102,7 +1103,7 @@
                 invV2Ref.child(batchId).child('items').child(itemId).update(data)
                 .then(() => closeModal('addItemModal')).catch(e => alert(e.message));
             } else {
-                data.planned = 0; // План по умолчанию 0 при создании новой
+                data.planned = 0; 
                 data.warehouse = 0;
                 data.base_installers = 0;
                 data.offset_installed = 0;
@@ -1121,6 +1122,11 @@
             let itemData = inventoryV2Data[batchId].items[itemId];
             if (itemData.closed) return alert('Эта позиция закрыта. Чтобы изменить данные, сначала откройте её.');
             
+            // ИСПРАВЛЕНИЕ МАТЕМАТИКИ: Вычисляем точное значение у монтажников перед редактированием
+            let base_inst = itemData.base_installers || 0;
+            let offset_inst = itemData.offset_installed || 0;
+            let true_current_installers = base_inst - (effectiveInstalled - offset_inst);
+
             let span = td.querySelector('span');
             let currentVal = parseInt(span.innerText) || 0;
             
@@ -1149,7 +1155,8 @@
                 if (field === 'warehouse') {
                     updates = { warehouse: newVal };
                 } else if (field === 'base_installers') {
-                    let diff = newVal - currentVal;
+                    // Используем истинное значение монтажников для правильного списания со склада
+                    let diff = newVal - true_current_installers;
                     let current_warehouse = itemData.warehouse || 0;
                     let new_warehouse = current_warehouse - diff;
                     
@@ -1190,6 +1197,7 @@
             }
         }
 
+        // ===== ГЛАВНАЯ ЛОГИКА РАСПРЕДЕЛЕНИЯ ПАРТИЙ =====
         function renderInventory() {
             const container = document.getElementById('inventoryBatchesContainer');
             container.innerHTML = '';
@@ -1211,11 +1219,48 @@
                 }
             });
 
-            let rawTotals = {};
-            dbList.forEach(item => {
-                if (!item.model) return;
-                let m = item.model.toLowerCase();
-                
+            // Формируем очереди партий для каждого ключа
+            let sigQueues = {};
+            let sortedBatches = Object.entries(inventoryV2Data).sort((a,b) => a[1].order - b[1].order);
+            sortedBatches.forEach(([bId, bData]) => {
+                if(bData.items) {
+                    let sortedItems = Object.entries(bData.items).sort((a,b) => a[1].order - b[1].order);
+                    sortedItems.forEach(([iId, iData]) => {
+                        let sigKey = (iData.brandKey || '').toLowerCase().trim() + '_' + (iData.sizeKey || '').toLowerCase().trim();
+                        if (!sigQueues[sigKey]) sigQueues[sigKey] = [];
+                        sigQueues[sigKey].push({
+                            batchId: bId,
+                            itemId: iId,
+                            batchName: bData.name, // Для поиска конкретной партии по имени
+                            closed: iData.closed,
+                            closedAtCount: iData.closedAtCount || 0
+                        });
+                    });
+                }
+            });
+
+            let processedItemsInstalled = {};
+            Object.values(sigQueues).forEach(queue => queue.forEach(q => processedItemsInstalled[q.itemId] = 0));
+
+            let parseDateForSort = str => {
+                if (!str || str === '-') return 0;
+                let parts = str.split(',');
+                let dParts = (parts[0] ? parts[0].trim() : '').split('.');
+                let tParts = (parts[1] ? parts[1].trim() : '00:00').split(':');
+                if(dParts.length !== 3) return 0;
+                return new Date(dParts[2], parseInt(dParts[1])-1, dParts[0], tParts[0] ? parseInt(tParts[0]) : 0, tParts[1] ? parseInt(tParts[1]) : 0).getTime();
+            };
+
+            let sortedRecords = [...dbList].sort((a, b) => {
+                let timeA = a.timestamp || parseDateForSort(a.date);
+                let timeB = b.timestamp || parseDateForSort(b.date);
+                return timeA - timeB;
+            });
+
+            // РАСПРЕДЕЛЕНИЕ УСТАНОВОК (АЛГОРИТМ С ИСКЛЮЧЕНИЕМ ДЛЯ G6)
+            sortedRecords.forEach(record => {
+                if (!record.model) return;
+                let m = record.model.toLowerCase();
                 let matchedSig = null;
                 for (let sig of window.allSignatures) {
                     if (m.includes(sig.b) && m.includes(sig.s)) {
@@ -1223,31 +1268,44 @@
                         break;
                     }
                 }
-                if (matchedSig) {
-                    rawTotals[matchedSig] = (rawTotals[matchedSig] || 0) + 1;
-                }
-            });
 
-            let signatureRemaining = { ...rawTotals };
-            let processedItemsInstalled = {}; 
-            
-            let sortedBatches = Object.entries(inventoryV2Data).sort((a,b) => a[1].order - b[1].order);
-            
-            sortedBatches.forEach(([batchId, batchData]) => {
-                if(batchData.items) {
-                    let sortedItems = Object.entries(batchData.items).sort((a,b) => a[1].order - b[1].order);
-                    sortedItems.forEach(([itemId, itemData]) => {
-                        let sigKey = (itemData.brandKey || '').toLowerCase().trim() + '_' + (itemData.sizeKey || '').toLowerCase().trim();
-                        let remaining = signatureRemaining[sigKey] || 0;
-                        
-                        if (itemData.closed) {
-                            processedItemsInstalled[itemId] = itemData.closedAtCount || 0;
-                            signatureRemaining[sigKey] = Math.max(0, remaining - (itemData.closedAtCount || 0));
-                        } else {
-                            processedItemsInstalled[itemId] = remaining;
-                            signatureRemaining[sigKey] = 0; 
+                if (matchedSig && sigQueues[matchedSig]) {
+                    let queue = sigQueues[matchedSig];
+                    let allocated = false;
+                    let serial = record.serial ? String(record.serial).replace(/\D/g, '') : '';
+
+                    // СПЕЦИАЛЬНО ДЛЯ G6: Жесткая привязка по заводскому номеру
+                    if (matchedSig.includes('g6')) {
+                        if (serial.startsWith('15226')) {
+                            let target = queue.find(q => q.batchName && q.batchName.includes('1775'));
+                            if (target) {
+                                processedItemsInstalled[target.itemId]++;
+                                allocated = true;
+                            }
+                        } else if (serial.startsWith('56225')) {
+                            let target = queue.find(q => q.batchName && q.batchName.includes('608'));
+                            if (target) {
+                                processedItemsInstalled[target.itemId]++;
+                                allocated = true;
+                            }
                         }
-                    });
+                    }
+
+                    // Если не G6 или серийник не совпал с известным префиксом - работает обычный каскад
+                    if (!allocated) {
+                        for (let i = 0; i < queue.length; i++) {
+                            let qItem = queue[i];
+                            if (qItem.closed) {
+                                if (processedItemsInstalled[qItem.itemId] < qItem.closedAtCount) {
+                                    processedItemsInstalled[qItem.itemId]++;
+                                    break;
+                                }
+                            } else {
+                                processedItemsInstalled[qItem.itemId]++;
+                                break;
+                            }
+                        }
+                    }
                 }
             });
 
@@ -1297,7 +1355,6 @@
                         let totalStyle = "font-size: 1.1rem; font-weight: bold;";
                         let totalTitle = "";
                         
-                        // Логика проверки ошибок плана
                         if (plan > 0 && total !== plan) {
                             totalStyle += " color: #991b1b; background-color: #fee2e2; cursor: help;";
                             totalTitle = `title="Несоответствие! По плану должно быть: ${plan} шт., а по факту: ${total} шт."`;
@@ -1419,17 +1476,21 @@
                 }
             });
 
-            // Раскрашивание партий
+            // Раскрашивание партий (АЛГОРИТМ С ИСКЛЮЧЕНИЕМ ДЛЯ G6)
             let itemColors = {};
             if (inventoryV2Data) {
                 let sigs = [];
+                window.allSignatures = [];
                 Object.values(inventoryV2Data).forEach(b => {
                     if(b.items) {
                         Object.values(b.items).forEach(item => {
                             let bk = item.brandKey ? item.brandKey.toLowerCase().trim() : '';
                             let sk = item.sizeKey ? item.sizeKey.toLowerCase().trim() : '';
                             let key = bk + '_' + sk;
-                            if (!sigs.some(s => s.key === key)) sigs.push({ key: key, b: bk, s: sk });
+                            if (!sigs.some(s => s.key === key)) {
+                                sigs.push({ key: key, b: bk, s: sk });
+                                window.allSignatures.push({ key: key, b: bk, s: sk });
+                            }
                         });
                     }
                 });
@@ -1443,10 +1504,36 @@
                     return new Date(dParts[2], parseInt(dParts[1])-1, dParts[0], tParts[0] ? parseInt(tParts[0]) : 0, tParts[1] ? parseInt(tParts[1]) : 0).getTime();
                 };
 
-                let itemsBySig = {};
-                dbList.forEach(item => {
-                    if (!item.model) return;
-                    let m = item.model.toLowerCase();
+                let sigQueues = {};
+                let sortedBatches = Object.entries(inventoryV2Data).sort((a,b) => a[1].order - b[1].order);
+                sortedBatches.forEach(([bId, bData]) => {
+                    if(bData.items) {
+                        let sortedItems = Object.entries(bData.items).sort((a,b) => a[1].order - b[1].order);
+                        sortedItems.forEach(([iId, iData]) => {
+                            let sigKey = (iData.brandKey || '').toLowerCase().trim() + '_' + (iData.sizeKey || '').toLowerCase().trim();
+                            if (!sigQueues[sigKey]) sigQueues[sigKey] = [];
+                            sigQueues[sigKey].push({
+                                batchId: bId,
+                                itemId: iId,
+                                batchName: bData.name,
+                                closed: iData.closed,
+                                closedAtCount: iData.closedAtCount || 0
+                            });
+                        });
+                    }
+                });
+
+                let sortedRecords = [...dbList].sort((a, b) => {
+                    let timeA = a.timestamp || parseDateForSort(a.date);
+                    let timeB = b.timestamp || parseDateForSort(b.date);
+                    return timeA - timeB;
+                });
+
+                let itemAllocationsForColor = {};
+
+                sortedRecords.forEach(record => {
+                    if (!record.model) return;
+                    let m = record.model.toLowerCase();
                     let matchedSig = null;
                     for (let sig of sigs) {
                         if (m.includes(sig.b) && m.includes(sig.s)) {
@@ -1454,58 +1541,57 @@
                             break;
                         }
                     }
-                    if (matchedSig) {
-                        if (!itemsBySig[matchedSig]) itemsBySig[matchedSig] = [];
-                        itemsBySig[matchedSig].push(item);
+
+                    if (matchedSig && sigQueues[matchedSig]) {
+                        let queue = sigQueues[matchedSig];
+                        let allocated = false;
+                        let assignedQueueIndex = 0;
+                        let serial = record.serial ? String(record.serial).replace(/\D/g, '') : '';
+
+                        // Исключение по номеру для G6
+                        if (matchedSig.includes('g6')) {
+                            if (serial.startsWith('15226')) {
+                                let targetIndex = queue.findIndex(q => q.batchName && q.batchName.includes('1775'));
+                                if (targetIndex !== -1) {
+                                    assignedQueueIndex = targetIndex;
+                                    itemAllocationsForColor[queue[targetIndex].itemId] = (itemAllocationsForColor[queue[targetIndex].itemId] || 0) + 1;
+                                    allocated = true;
+                                }
+                            } else if (serial.startsWith('56225')) {
+                                let targetIndex = queue.findIndex(q => q.batchName && q.batchName.includes('608'));
+                                if (targetIndex !== -1) {
+                                    assignedQueueIndex = targetIndex;
+                                    itemAllocationsForColor[queue[targetIndex].itemId] = (itemAllocationsForColor[queue[targetIndex].itemId] || 0) + 1;
+                                    allocated = true;
+                                }
+                            }
+                        }
+
+                        if (!allocated) {
+                            for (let i = 0; i < queue.length; i++) {
+                                let qItem = queue[i];
+                                let currentCount = itemAllocationsForColor[qItem.itemId] || 0;
+                                if (qItem.closed) {
+                                    if (currentCount < qItem.closedAtCount) {
+                                        itemAllocationsForColor[qItem.itemId] = currentCount + 1;
+                                        assignedQueueIndex = i;
+                                        allocated = true;
+                                        break;
+                                    }
+                                } else {
+                                    itemAllocationsForColor[qItem.itemId] = currentCount + 1;
+                                    assignedQueueIndex = i;
+                                    allocated = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        if (allocated) {
+                            itemColors[record.id] = assignedQueueIndex === 0 ? 'var(--accent-blue)' : 'var(--batch-new-color)';
+                        }
                     }
                 });
-
-                let sortedBatches = Object.entries(inventoryV2Data).sort((a,b) => a[1].order - b[1].order);
-
-                for (let sigKey in itemsBySig) {
-                    // Сортируем от самых старых к самым новым
-                    itemsBySig[sigKey].sort((a, b) => {
-                        let timeA = a.timestamp || parseDateForSort(a.date);
-                        let timeB = b.timestamp || parseDateForSort(b.date);
-                        return timeA - timeB; 
-                    });
-
-                    let trackingBatches = [];
-                    sortedBatches.forEach(([bId, bData]) => {
-                        if (bData.items) {
-                            let itemsInBatch = Object.values(bData.items).filter(i => {
-                                let k = (i.brandKey || '').toLowerCase().trim() + '_' + (i.sizeKey || '').toLowerCase().trim();
-                                return k === sigKey;
-                            });
-                            if (itemsInBatch.length > 0) trackingBatches.push(itemsInBatch[0]);
-                        }
-                    });
-
-                    let currentBatchIndex = 0;
-                    let countInCurrentBatch = 0;
-
-                    itemsBySig[sigKey].forEach(record => {
-                        let currentBatch = trackingBatches[currentBatchIndex];
-                        if (currentBatch) {
-                            if (currentBatch.closed) {
-                                if (countInCurrentBatch < currentBatch.closedAtCount) {
-                                    itemColors[record.id] = currentBatchIndex === 0 ? 'var(--accent-blue)' : 'var(--batch-new-color)';
-                                    countInCurrentBatch++;
-                                } else {
-                                    currentBatchIndex++;
-                                    currentBatch = trackingBatches[currentBatchIndex];
-                                    countInCurrentBatch = 1;
-                                    itemColors[record.id] = currentBatchIndex === 0 ? 'var(--accent-blue)' : 'var(--batch-new-color)';
-                                }
-                            } else {
-                                itemColors[record.id] = currentBatchIndex === 0 ? 'var(--accent-blue)' : 'var(--batch-new-color)';
-                                countInCurrentBatch++;
-                            }
-                        } else {
-                            itemColors[record.id] = currentBatchIndex === 0 ? 'var(--accent-blue)' : 'var(--batch-new-color)';
-                        }
-                    });
-                }
             }
 
             let html = '';
@@ -1519,8 +1605,10 @@
                 if (item.serial && item.serial !== '-') {
                     let digits = item.serial.replace(/\D/g, ''); 
                     let isDuplicate = serialCounts[item.serial] > 1;
-                    let expectedPrefix = getExpectedPrefix(item.model);
-                    let wrongPrefix = expectedPrefix && !item.serial.startsWith(expectedPrefix);
+                    
+                    let expectedPrefixes = getExpectedPrefix(item.model);
+                    let wrongPrefix = expectedPrefixes && !expectedPrefixes.some(prefix => item.serial.startsWith(prefix));
+                    
                     let wrongLength = digits.length !== 11;
                     
                     if (isDuplicate) {
@@ -1528,7 +1616,7 @@
                         serialError = true;
                     }
                     if (wrongPrefix) {
-                        errorTitle += `Неверное начало номера (ожидается ${expectedPrefix})! `;
+                        errorTitle += `Неверное начало номера (ожидается ${expectedPrefixes.join(' или ')})! `;
                         serialError = true;
                     }
                     if (wrongLength) {

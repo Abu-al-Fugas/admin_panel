@@ -480,6 +480,10 @@
                         <label>Начальный остаток на складе</label>
                         <input type="number" id="i_initialWarehouse" min="0" value="0">
                     </div>
+                    <div class="form-group">
+                        <label>Цвет модели в таблице</label>
+                        <input type="color" id="i_itemColor" value="#2563eb" style="height: 40px; padding: 2px 6px; cursor: pointer;">
+                    </div>
                 </div>
                 <input type="hidden" id="i_planned" value="0">
                 <input type="hidden" id="i_itemId">
@@ -710,25 +714,22 @@
             'G65': 110
         };
 
-        // Вспомогательная функция для сборки всех позиций инвентаря с сортировкой по имени
+        // Вспомогательная функция для сборки всех позиций инвентаря с сортировкой по order
         function getAllItemsFromInventory() {
             let allItems = [];
             if (!inventoryV2Data) return allItems;
             let sortedBatches = Object.entries(inventoryV2Data).sort((a,b) => a[1].order - b[1].order);
             sortedBatches.forEach(([bId, bData]) => {
                 if(bData.items) {
-                    let sortedItems = Object.entries(bData.items).sort((a,b) => {
-                        let nameA = (a[1].displayName || '').toLowerCase();
-                        let nameB = (b[1].displayName || '').toLowerCase();
-                        return nameA.localeCompare(nameB, undefined, {numeric: true});
-                    });
+                    let sortedItems = Object.entries(bData.items).sort((a,b) => (a[1].order || 0) - (b[1].order || 0));
                     sortedItems.forEach(([iId, iData]) => {
                         allItems.push({
                             batchId: bId,
                             itemId: iId,
                             batchName: bData.name,
                             searchModel: iData.searchModel !== undefined ? iData.searchModel : (iData.brandKey || ''),
-                            searchSerial: iData.searchSerial !== undefined ? iData.searchSerial : (iData.sizeKey || '')
+                            searchSerial: iData.searchSerial !== undefined ? iData.searchSerial : (iData.sizeKey || ''),
+                            itemColor: iData.itemColor || 'var(--accent-blue)'
                         });
                     });
                 }
@@ -1070,11 +1071,7 @@
             const container = document.getElementById('plannedInputsContainer');
             let html = '';
             
-            let sortedItems = Object.entries(batchData.items).sort((a,b) => {
-                let nameA = (a[1].displayName || '').toLowerCase();
-                let nameB = (b[1].displayName || '').toLowerCase();
-                return nameA.localeCompare(nameB, undefined, {numeric: true});
-            });
+            let sortedItems = Object.entries(batchData.items).sort((a,b) => (a[1].order || 0) - (b[1].order || 0));
             sortedItems.forEach(([itemId, itemData]) => {
                 let val = itemData.planned || 0;
                 html += `<div class="form-group" style="margin-bottom: 8px; display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
@@ -1125,6 +1122,7 @@
             document.getElementById('i_searchModel').value = '';
             document.getElementById('i_searchSerial').value = '';
             document.getElementById('i_initialWarehouse').value = '0';
+            document.getElementById('i_itemColor').value = '#2563eb';
             
             openModal('addItemModal');
         }
@@ -1141,6 +1139,7 @@
             document.getElementById('i_searchModel').value = itemData.searchModel !== undefined ? itemData.searchModel : (itemData.brandKey || '');
             document.getElementById('i_searchSerial').value = itemData.searchSerial !== undefined ? itemData.searchSerial : (itemData.sizeKey || '');
             document.getElementById('i_initialWarehouse').value = itemData.warehouse || 0;
+            document.getElementById('i_itemColor').value = itemData.itemColor || '#2563eb';
 
             document.getElementById('addItemTitle').innerText = 'Редактировать позицию';
             openModal('addItemModal');
@@ -1153,6 +1152,7 @@
             const searchModel = document.getElementById('i_searchModel').value.trim();
             const searchSerial = document.getElementById('i_searchSerial').value.trim();
             const initialWarehouse = parseInt(document.getElementById('i_initialWarehouse').value) || 0;
+            const itemColor = document.getElementById('i_itemColor').value;
             
             if (!batchId || !displayName) return alert('Заполните название и выберите партию!');
             if (!searchModel && !searchSerial) return alert('Заполните хотя бы один префикс для поиска (по названию или номеру)!');
@@ -1161,7 +1161,8 @@
                 displayName: displayName,
                 searchModel: searchModel,
                 searchSerial: searchSerial,
-                warehouse: initialWarehouse
+                warehouse: initialWarehouse,
+                itemColor: itemColor
             };
 
             if (itemId) {
@@ -1295,11 +1296,7 @@
                 `;
                 
                 if (batchData.items && Object.keys(batchData.items).length > 0) {
-                    let sortedItems = Object.entries(batchData.items).sort((a,b) => {
-                        let nameA = (a[1].displayName || '').toLowerCase();
-                        let nameB = (b[1].displayName || '').toLowerCase();
-                        return nameA.localeCompare(nameB, undefined, {numeric: true});
-                    });
+                    let sortedItems = Object.entries(batchData.items).sort((a,b) => (a[1].order || 0) - (b[1].order || 0));
                     
                     sortedItems.forEach(([itemId, itemData]) => {
                         let effectiveInstalled = processedItemsInstalled[itemId] || 0;
@@ -1437,7 +1434,7 @@
                 dbList.forEach(record => {
                     let queue = findMatchingItemQueue(record, allItems);
                     if (queue && queue.length > 0) {
-                        itemColors[record.id] = 'var(--accent-blue)';
+                        itemColors[record.id] = queue[0].itemColor || 'var(--accent-blue)';
                     }
                 });
             }
@@ -2096,7 +2093,8 @@
                             base_installers: oldItem.base_installers || 0,
                             offset_installed: oldItem.offset_installed || 0,
                             planned: planned,
-                            order: idx
+                            order: idx,
+                            itemColor: '#2563eb'
                         };
                     });
                     

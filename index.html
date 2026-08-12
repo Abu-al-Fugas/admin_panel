@@ -246,7 +246,7 @@
             background-color: rgba(2, 132, 199, 0.1); border-right: 2px solid var(--accent-cyan);
         }
         
-        td[data-field="objectName"], td[data-field="address"] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        td[data-field="objectName"], td[data-field="address"], td[data-field="city"], td[data-field="comment"] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         .row-checkbox, #selectAllCheckbox { cursor: pointer; width: 16px; height: 16px; margin: 0; accent-color: var(--accent-cyan); }
         
@@ -402,22 +402,24 @@
                             <th onclick="sortTable(1)">Монтажник <span class="sort-icon" id="sort-1"></span></th>
                             <th class="resizable" data-col="objectName" onclick="sortTable(2)">Объект <span class="sort-icon" id="sort-2"></span><div class="resizer"></div></th>
                             <th class="resizable" data-col="address" onclick="sortTable(3)">Адрес <span class="sort-icon" id="sort-3"></span><div class="resizer"></div></th>
-                            <th onclick="sortTable(4)">Потребитель <span class="sort-icon" id="sort-4"></span></th>
-                            <th onclick="sortTable(5)">Должность <span class="sort-icon" id="sort-5"></span></th>
-                            <th onclick="sortTable(6, 'number')">Мощн. <span class="sort-icon" id="sort-6"></span></th>
-                            <th onclick="sortTable(7, 'checkbox')" class="text-center" style="z-index: 11;">Паспорт <span class="sort-icon" id="sort-7"></span></th>
-                            <th onclick="sortTable(8)">Модель <span class="sort-icon" id="sort-8"></span></th>
-                            <th data-col="serial" onclick="sortTable(9)">№ <span class="sort-icon" id="sort-9"></span></th>
-                            <th onclick="sortTable(10)">Направл. <span class="sort-icon" id="sort-10"></span></th>
-                            <th data-col="simCardNumber" onclick="sortTable(11)">SIM <span class="sort-icon" id="sort-11"></span></th>
-                            <th onclick="sortTable(12)">Ст. модель <span class="sort-icon" id="sort-12"></span></th>
-                            <th data-col="oldMeterSerial" onclick="sortTable(13)">Ст. № <span class="sort-icon" id="sort-13"></span></th>
-                            <th onclick="sortTable(14)">Ст. показ. <span class="sort-icon" id="sort-14"></span></th>
-                            <th data-col="controllerSeal" onclick="sortTable(15)">Пломба <span class="sort-icon" id="sort-15"></span></th>
-                            <th onclick="sortTable(16)">Расположение <span class="sort-icon" id="sort-16"></span></th>
-                            <th onclick="sortTable(17)">ЛС <span class="sort-icon" id="sort-17"></span></th>
-                            <th onclick="sortTable(18)">GPRS <span class="sort-icon" id="sort-18"></span></th>
-                            <th onclick="sortTable(19, 'date')">Дата <span class="sort-icon" id="sort-19"></span></th>
+                            <th class="resizable" data-col="city" onclick="sortTable(4)">Город <span class="sort-icon" id="sort-4"></span><div class="resizer"></div></th>
+                            <th onclick="sortTable(5)">Потребитель <span class="sort-icon" id="sort-5"></span></th>
+                            <th onclick="sortTable(6)">Должность <span class="sort-icon" id="sort-6"></span></th>
+                            <th onclick="sortTable(7, 'number')">Мощн. <span class="sort-icon" id="sort-7"></span></th>
+                            <th onclick="sortTable(8, 'checkbox')" class="text-center" style="z-index: 11;">Паспорт <span class="sort-icon" id="sort-8"></span></th>
+                            <th onclick="sortTable(9)">Модель <span class="sort-icon" id="sort-9"></span></th>
+                            <th data-col="serial" onclick="sortTable(10)">№ <span class="sort-icon" id="sort-10"></span></th>
+                            <th onclick="sortTable(11)">Направл. <span class="sort-icon" id="sort-11"></span></th>
+                            <th data-col="simCardNumber" onclick="sortTable(12)">SIM <span class="sort-icon" id="sort-12"></span></th>
+                            <th onclick="sortTable(13)">Ст. модель <span class="sort-icon" id="sort-13"></span></th>
+                            <th data-col="oldMeterSerial" onclick="sortTable(14)">Ст. № <span class="sort-icon" id="sort-14"></span></th>
+                            <th onclick="sortTable(15)">Ст. показ. <span class="sort-icon" id="sort-15"></span></th>
+                            <th data-col="controllerSeal" onclick="sortTable(16)">Пломба <span class="sort-icon" id="sort-16"></span></th>
+                            <th onclick="sortTable(17)">Расположение <span class="sort-icon" id="sort-17"></span></th>
+                            <th onclick="sortTable(18)">ЛС <span class="sort-icon" id="sort-18"></span></th>
+                            <th onclick="sortTable(19)">GPRS <span class="sort-icon" id="sort-19"></span></th>
+                            <th onclick="sortTable(20)">Коммент. <span class="sort-icon" id="sort-20"></span></th>
+                            <th onclick="sortTable(21, 'date')">Дата <span class="sort-icon" id="sort-21"></span></th>
                             <th class="text-center" style="z-index: 11;">Действия</th>
                         </tr>
                     </thead>
@@ -534,6 +536,7 @@
                                 <div class="form-grid">
                                     <div class="form-group"><label>Объект</label><input type="text" id="e_objectName"></div>
                                     <div class="form-group"><label>Адрес</label><input type="text" id="e_address"></div>
+                                    <div class="form-group"><label>Город</label><input type="text" id="e_city"></div>
                                     <div class="form-group"><label>Расположение счетчика</label>
                                         <div class="input-with-select">
                                             <input type="text" id="e_uirgLocation">
@@ -632,6 +635,7 @@
                         <h4>Дополнительно</h4>
                         <div class="modal-body-grid">
                             <div class="form-group"><label>GPS</label><input type="text" id="e_gps"></div>
+                            <div class="form-group"><label>Комментарий</label><input type="text" id="e_comment"></div>
                             <div class="form-group"><label>Дата</label><input type="text" id="e_date"></div>
                         </div>
                     </div>
@@ -702,11 +706,14 @@
             'G65': 110
         };
 
-        // ИЗМЕНЕНИЕ: Возвращаем массив возможных правильных префиксов
+        // Возвращаем массив возможных правильных префиксов
         function getExpectedPrefix(modelName) {
             if (!modelName) return null;
             let norm = modelName.replace(/\s+/g, '').toUpperCase();
             norm = norm.replace(/C/g, 'С').replace(/M/g, 'М').replace(/T/g, 'Т');
+            
+            // Отключаем строгую проверку префиксов для новых партий 2025 года (так как там новые заводские номера)
+            if (norm.includes('2025')) return null; 
             
             if (norm.includes('G40')) return ['20625'];
             if (norm.includes('G65')) return ['20825'];
@@ -1219,6 +1226,9 @@
                 }
             });
 
+            // Сортируем сигнатуры по убыванию длины, чтобы специфичный ключ (например (2025)) перебивал общий
+            window.allSignatures.sort((a, b) => (b.b.length + b.s.length) - (a.b.length + a.s.length));
+
             // Формируем очереди партий для каждого ключа
             let sigQueues = {};
             let sortedBatches = Object.entries(inventoryV2Data).sort((a,b) => a[1].order - b[1].order);
@@ -1433,7 +1443,7 @@
         }
 
         function applyColumnWidths() {
-            ['objectName', 'address'].forEach(colId => {
+            ['objectName', 'address', 'city'].forEach(colId => {
                 const savedWidth = localStorage.getItem('botstm_colWidth_' + colId);
                 if (savedWidth) {
                     const th = document.querySelector(`th[data-col="${colId}"]`);
@@ -1494,6 +1504,10 @@
                         });
                     }
                 });
+
+                // Сортируем сигнатуры по убыванию длины (более специфичные ключи проверяются первыми)
+                sigs.sort((a, b) => (b.b.length + b.s.length) - (a.b.length + a.s.length));
+                window.allSignatures.sort((a, b) => (b.b.length + b.s.length) - (a.b.length + a.s.length));
 
                 let parseDateForSort = str => {
                     if (!str || str === '-') return 0;
@@ -1651,6 +1665,7 @@
                     <td data-field="installer"><b>${item.installer || '-'}</b></td>
                     <td data-field="objectName">${item.objectName || '-'}</td>
                     <td data-field="address" title="${item.address || '-'}">${item.address || '-'}</td>
+                    <td data-field="city">${item.city || '-'}</td>
                     <td data-field="consumer">${item.consumer || '-'}</td>
                     <td data-field="position">${item.position || '-'}</td>
                     <td class="${powerClass}" data-field="totalPower">${item.totalPower || '-'}</td>
@@ -1666,6 +1681,7 @@
                     <td data-field="uirgLocation">${item.uirgLocation || '-'}</td>
                     <td data-field="ls">${item.ls || '-'}</td>
                     <td data-field="gps">${item.gps || '-'}</td>
+                    <td data-field="comment">${item.comment || '-'}</td>
                     <td data-field="date">${item.date || '-'}</td>
                     <td class="text-center" style="display:flex; gap: 4px; justify-content:center; align-items:center;">
                         <button class="btn btn-outline btn-small edit-single-btn" onclick="editRecord('${item.id}')" title="Редактировать">✎</button>
@@ -1673,7 +1689,7 @@
                     </td>
                 </tr>`;
             });
-            if (html === '') html = '<tr><td colspan="21" style="text-align:center; padding:24px; color:var(--text-muted);">Нет записей</td></tr>';
+            if (html === '') html = '<tr><td colspan="23" style="text-align:center; padding:24px; color:var(--text-muted);">Нет записей</td></tr>';
             
             tbody.innerHTML = html;
             
@@ -1831,7 +1847,7 @@
             const item = dbList.find(i => i.id === id);
             if (!item) return;
             
-            ['objectName', 'address', 'uirgLocation', 'installer', 'model', 'serial', 'position', 'consumer', 'ls', 'totalPower', 'controllerSeal', 'oldMeterModel', 'oldMeterSerial', 'oldMeterReadings', 'newGasDirection', 'simCardNumber', 'gps', 'date'].forEach(field => {
+            ['objectName', 'address', 'city', 'uirgLocation', 'installer', 'model', 'serial', 'position', 'consumer', 'ls', 'totalPower', 'controllerSeal', 'oldMeterModel', 'oldMeterSerial', 'oldMeterReadings', 'newGasDirection', 'simCardNumber', 'gps', 'comment', 'date'].forEach(field => {
                 document.getElementById('e_' + field).value = item[field] || '';
             });
             
@@ -1844,7 +1860,7 @@
         function saveEdit() {
             const id = document.getElementById('e_recordId').value;
             const data = {};
-            ['objectName', 'address', 'uirgLocation', 'installer', 'model', 'serial', 'position', 'consumer', 'ls', 'totalPower', 'controllerSeal', 'oldMeterModel', 'oldMeterSerial', 'oldMeterReadings', 'newGasDirection', 'simCardNumber', 'gps', 'date'].forEach(field => {
+            ['objectName', 'address', 'city', 'uirgLocation', 'installer', 'model', 'serial', 'position', 'consumer', 'ls', 'totalPower', 'controllerSeal', 'oldMeterModel', 'oldMeterSerial', 'oldMeterReadings', 'newGasDirection', 'simCardNumber', 'gps', 'comment', 'date'].forEach(field => {
                 data[field] = document.getElementById('e_' + field).value.trim();
             });
             
@@ -1957,12 +1973,12 @@
             const lines = block.split('\n').map(l => l.trim());
             const record = {};
             const fieldSynonyms = {
-                objectName: ['Объект', 'Наименование объекта'], address: ['Адрес', 'Адрес объекта'],
+                objectName: ['Объект', 'Наименование объекта'], address: ['Адрес', 'Адрес объекта'], city: ['Город', 'Населенный пункт'],
                 installer: ['Монтажник', 'ФИО монтажника'], consumer: ['Потребитель', 'ФИО потребителя'],
                 position: ['Должность'], ls: ['Лицевой счет', 'ЛС'],
                 model: ['Модель нового счетчика', 'Модель нового', 'Модель'], 
                 serial: ['Серийный № нового счетчика', '№ нового', 'Серийный номер', 'Серийный №', '№'],
-                gps: ['GPS', 'Координаты GPS'], date: ['Дата', 'Дата/время генерации'],
+                gps: ['GPS', 'Координаты GPS'], comment: ['Комментарий', 'Коммент', 'Прим.', 'Примечание'], date: ['Дата', 'Дата/время генерации'],
                 controllerSeal: ['Пломба', 'Пломба контролера'], oldMeterModel: ['Модель старого'],
                 oldMeterSerial: ['№ старого'], oldMeterReadings: ['Показания старого'],
                 newGasDirection: ['Направление', 'Направление нового'], simCardNumber: ['SIM', '№ SIM', 'SIM-карта'],
@@ -2057,12 +2073,12 @@
                     let added = 0;
 
                     const excelMap = {
-                        'Монтажник': 'installer', 'Объект': 'objectName', 'Адрес': 'address',
+                        'Монтажник': 'installer', 'Объект': 'objectName', 'Адрес': 'address', 'Город': 'city',
                         'Потребитель': 'consumer', 'Должность': 'position', 'Мощн.': 'totalPower',
                         'Модель': 'model', '№': 'serial', 'Направл.': 'newGasDirection',
                         'SIM': 'simCardNumber', 'Ст. модель': 'oldMeterModel', 'Ст. №': 'oldMeterSerial',
                         'Ст. показ.': 'oldMeterReadings', 'Пломба': 'controllerSeal', 'Расположение': 'uirgLocation',
-                        'ЛС': 'ls', 'GPRS': 'gps', 'Дата': 'date'
+                        'ЛС': 'ls', 'GPRS': 'gps', 'Комментарий': 'comment', 'Дата': 'date'
                     };
 
                     const serialMap = {};
@@ -2128,7 +2144,7 @@
         function exportToExcel() {
             if (dbList.length === 0) return alert("Нет данных");
             
-            const headers = ['ID_Системы', 'Монтажник', 'Объект', 'Адрес', 'Потребитель', 'Должность', 'Мощн.', 'Паспорт', 'Модель', '№', 'Направл.', 'SIM', 'Ст. модель', 'Ст. №', 'Ст. показ.', 'Пломба', 'Расположение', 'ЛС', 'GPRS', 'Дата'];
+            const headers = ['ID_Системы', 'Монтажник', 'Объект', 'Адрес', 'Город', 'Потребитель', 'Должность', 'Мощн.', 'Паспорт', 'Модель', '№', 'Направл.', 'SIM', 'Ст. модель', 'Ст. №', 'Ст. показ.', 'Пломба', 'Расположение', 'ЛС', 'GPRS', 'Комментарий', 'Дата'];
             
             let data = [headers];
             
@@ -2140,6 +2156,7 @@
                     item.installer || '',
                     item.objectName || '',
                     item.address || '',
+                    item.city || '',
                     item.consumer || '',
                     item.position || '',
                     item.totalPower || '',
@@ -2155,13 +2172,14 @@
                     item.uirgLocation || '',
                     item.ls || '',
                     item.gps || '',
+                    item.comment || '',
                     exportDate
                 ];
                 data.push(row);
             });
             
             const ws = XLSX.utils.aoa_to_sheet(data);
-            ws['!cols'] = [{wch: 25}, {wch: 20}, {wch: 30}, {wch: 35}]; 
+            ws['!cols'] = [{wch: 25}, {wch: 20}, {wch: 30}, {wch: 35}, {wch: 25}]; 
 
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Установки");

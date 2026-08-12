@@ -469,12 +469,16 @@
                         <input type="text" id="i_displayName">
                     </div>
                     <div class="form-group">
-                        <label>Ключевое слово бренда (по нему будет идти поиск, например: миртек)</label>
-                        <input type="text" id="i_brandKey">
+                        <label>Префикс для поиска в названии модели (например: миртек)</label>
+                        <input type="text" id="i_searchModel">
                     </div>
                     <div class="form-group">
-                        <label>Ключевое слово размера (например: g6)</label>
-                        <input type="text" id="i_sizeKey">
+                        <label>Префикс поиска по заводскому номеру (например: 56225)</label>
+                        <input type="text" id="i_searchSerial">
+                    </div>
+                    <div class="form-group">
+                        <label>Начальный остаток на складе</label>
+                        <input type="number" id="i_initialWarehouse" min="0" value="0">
                     </div>
                 </div>
                 <input type="hidden" id="i_planned" value="0">
@@ -706,23 +710,70 @@
             'G65': 110
         };
 
-        // Возвращаем массив возможных правильных префиксов
-        function getExpectedPrefix(modelName) {
-            if (!modelName) return null;
-            let norm = modelName.replace(/\s+/g, '').toUpperCase();
-            norm = norm.replace(/C/g, 'С').replace(/M/g, 'М').replace(/T/g, 'Т');
+        // Вспомогательная функция для сборки всех позиций инвентаря с сортировкой по имени
+        function getAllItemsFromInventory() {
+            let allItems = [];
+            if (!inventoryV2Data) return allItems;
+            let sortedBatches = Object.entries(inventoryV2Data).sort((a,b) => a[1].order - b[1].order);
+            sortedBatches.forEach(([bId, bData]) => {
+                if(bData.items) {
+                    let sortedItems = Object.entries(bData.items).sort((a,b) => {
+                        let nameA = (a[1].displayName || '').toLowerCase();
+                        let nameB = (b[1].displayName || '').toLowerCase();
+                        return nameA.localeCompare(nameB, undefined, {numeric: true});
+                    });
+                    sortedItems.forEach(([iId, iData]) => {
+                        allItems.push({
+                            batchId: bId,
+                            itemId: iId,
+                            batchName: bData.name,
+                            searchModel: iData.searchModel !== undefined ? iData.searchModel : (iData.brandKey || ''),
+                            searchSerial: iData.searchSerial !== undefined ? iData.searchSerial : (iData.sizeKey || '')
+                        });
+                    });
+                }
+            });
+            return allItems;
+        }
+
+        // Вспомогательная функция сопоставления записи с очередью позиций
+        function findMatchingItemQueue(record, allItems) {
+            if (!record.model && !record.serial) return null;
+            let rModel = (record.model || '').toLowerCase().replace(/c/g, 'с').replace(/m/g, 'м').replace(/t/g, 'т').replace(/\s+/g, '');
+            let rSerial = record.serial ? String(record.serial).replace(/\D/g, '') : '';
             
-            // Отключаем строгую проверку префиксов для новых партий 2025 года (так как там новые заводские номера)
-            if (norm.includes('2025')) return null; 
+            // Собираем уникальные сигнатуры (префиксы), сортируем от самых длинных к коротким
+            let sigs = [];
+            let sigMap = {};
+            allItems.forEach(item => {
+                let key = item.searchModel + '___' + item.searchSerial;
+                if (!sigMap[key]) {
+                    sigMap[key] = true;
+                    sigs.push({
+                        key: key,
+                        sModel: item.searchModel.toLowerCase().replace(/c/g, 'с').replace(/m/g, 'м').replace(/t/g, 'т').replace(/\s+/g, ''),
+                        sSerial: item.searchSerial.replace(/\D/g, ''),
+                        len: (item.searchModel || '').length + (item.searchSerial || '').length
+                    });
+                }
+            });
             
-            if (norm.includes('G40')) return ['20625'];
-            if (norm.includes('G65')) return ['20825'];
-            if (norm.includes('G25')) return ['20525'];
-            if (norm.includes('G16')) return ['20425'];
-            if (norm.includes('G10')) return ['56325'];
-            if (norm.includes('G6'))  return ['56225', '15226']; // Ожидаются оба варианта для G6
-            if (norm.includes('G4'))  return ['56125'];
-            return null;
+            sigs.sort((a, b) => b.len - a.len); 
+            
+            let matchedSigKey = null;
+            for (let sig of sigs) {
+                if (!sig.sModel && !sig.sSerial) continue;
+                let matchM = sig.sModel ? rModel.includes(sig.sModel) : true;
+                let matchS = sig.sSerial ? rSerial.startsWith(sig.sSerial) : true;
+                
+                if (matchM && matchS) {
+                    matchedSigKey = sig.key;
+                    break;
+                }
+            }
+            
+            if (!matchedSigKey) return null;
+            return allItems.filter(item => (item.searchModel + '___' + item.searchSerial) === matchedSigKey);
         }
 
         // ===== Firebase =====
@@ -745,7 +796,6 @@
         let inventoryV2Data = {}; 
         let sortDirection = {};
         let isInlineEditing = false; 
-        window.allSignatures = []; // Для хранения всех уникальных пар ключей
 
         // ===== UI Основы =====
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
@@ -772,18 +822,17 @@
                 }
             });
 
+            let allItems = getAllItemsFromInventory();
+
             dbList.forEach(item => {
                 let isError = false;
                 if (item.serial && item.serial !== '-') {
-                    let digits = item.serial.replace(/\D/g, ''); 
                     let isDuplicate = serialCounts[item.serial] > 1;
                     
-                    let expectedPrefixes = getExpectedPrefix(item.model);
-                    // Ошибка, если ни один из разрешенных префиксов не совпадает с началом номера
-                    let wrongPrefix = expectedPrefixes && !expectedPrefixes.some(prefix => item.serial.startsWith(prefix));
+                    let queue = findMatchingItemQueue(item, allItems);
+                    let noMatch = !queue || queue.length === 0;
                     
-                    let wrongLength = digits.length !== 11;
-                    if (isDuplicate || wrongPrefix || wrongLength) isError = true;
+                    if (isDuplicate || noMatch) isError = true;
                 }
 
                 if (item.model && item.totalPower && item.totalPower !== '-') {
@@ -980,7 +1029,7 @@
             }
         }
 
-        // ===== ИНВЕНТАРЬ V2 (Партии, План, Ручное закрытие, Перелив) =====
+        // ===== ИНВЕНТАРЬ V2 (Партии, План) =====
 
         function toggleBatch(batchId) {
             const container = document.getElementById(`batch_${batchId}`);
@@ -1021,7 +1070,11 @@
             const container = document.getElementById('plannedInputsContainer');
             let html = '';
             
-            let sortedItems = Object.entries(batchData.items).sort((a,b) => a[1].order - b[1].order);
+            let sortedItems = Object.entries(batchData.items).sort((a,b) => {
+                let nameA = (a[1].displayName || '').toLowerCase();
+                let nameB = (b[1].displayName || '').toLowerCase();
+                return nameA.localeCompare(nameB, undefined, {numeric: true});
+            });
             sortedItems.forEach(([itemId, itemData]) => {
                 let val = itemData.planned || 0;
                 html += `<div class="form-group" style="margin-bottom: 8px; display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
@@ -1069,8 +1122,9 @@
             document.getElementById('addItemTitle').innerText = 'Добавить позицию';
             document.getElementById('i_itemId').value = '';
             document.getElementById('i_displayName').value = '';
-            document.getElementById('i_brandKey').value = '';
-            document.getElementById('i_sizeKey').value = '';
+            document.getElementById('i_searchModel').value = '';
+            document.getElementById('i_searchSerial').value = '';
+            document.getElementById('i_initialWarehouse').value = '0';
             
             openModal('addItemModal');
         }
@@ -1084,8 +1138,9 @@
 
             document.getElementById('i_itemId').value = itemId;
             document.getElementById('i_displayName').value = itemData.displayName || '';
-            document.getElementById('i_brandKey').value = itemData.brandKey || '';
-            document.getElementById('i_sizeKey').value = itemData.sizeKey || '';
+            document.getElementById('i_searchModel').value = itemData.searchModel !== undefined ? itemData.searchModel : (itemData.brandKey || '');
+            document.getElementById('i_searchSerial').value = itemData.searchSerial !== undefined ? itemData.searchSerial : (itemData.sizeKey || '');
+            document.getElementById('i_initialWarehouse').value = itemData.warehouse || 0;
 
             document.getElementById('addItemTitle').innerText = 'Редактировать позицию';
             openModal('addItemModal');
@@ -1095,15 +1150,18 @@
             const batchId = document.getElementById('i_batchId').value;
             const itemId = document.getElementById('i_itemId').value;
             const displayName = document.getElementById('i_displayName').value.trim();
-            const brandKey = document.getElementById('i_brandKey').value.trim().toLowerCase();
-            const sizeKey = document.getElementById('i_sizeKey').value.trim().toLowerCase();
+            const searchModel = document.getElementById('i_searchModel').value.trim();
+            const searchSerial = document.getElementById('i_searchSerial').value.trim();
+            const initialWarehouse = parseInt(document.getElementById('i_initialWarehouse').value) || 0;
             
-            if (!batchId || !displayName || !brandKey || !sizeKey) return alert('Заполните все текстовые поля!');
+            if (!batchId || !displayName) return alert('Заполните название и выберите партию!');
+            if (!searchModel && !searchSerial) return alert('Заполните хотя бы один префикс для поиска (по названию или номеру)!');
             
             let data = {
                 displayName: displayName,
-                brandKey: brandKey,
-                sizeKey: sizeKey
+                searchModel: searchModel,
+                searchSerial: searchSerial,
+                warehouse: initialWarehouse
             };
 
             if (itemId) {
@@ -1111,11 +1169,8 @@
                 .then(() => closeModal('addItemModal')).catch(e => alert(e.message));
             } else {
                 data.planned = 0; 
-                data.warehouse = 0;
                 data.base_installers = 0;
                 data.offset_installed = 0;
-                data.closed = false;
-                data.closedAtCount = 0;
                 data.order = Date.now();
                 
                 invV2Ref.child(batchId).child('items').push(data)
@@ -1127,9 +1182,7 @@
             if (td.querySelector('input')) return; 
             
             let itemData = inventoryV2Data[batchId].items[itemId];
-            if (itemData.closed) return alert('Эта позиция закрыта. Чтобы изменить данные, сначала откройте её.');
             
-            // ИСПРАВЛЕНИЕ МАТЕМАТИКИ: Вычисляем точное значение у монтажников перед редактированием
             let base_inst = itemData.base_installers || 0;
             let offset_inst = itemData.offset_installed || 0;
             let true_current_installers = base_inst - (effectiveInstalled - offset_inst);
@@ -1162,7 +1215,6 @@
                 if (field === 'warehouse') {
                     updates = { warehouse: newVal };
                 } else if (field === 'base_installers') {
-                    // Используем истинное значение монтажников для правильного списания со склада
                     let diff = newVal - true_current_installers;
                     let current_warehouse = itemData.warehouse || 0;
                     let new_warehouse = current_warehouse - diff;
@@ -1188,16 +1240,6 @@
             };
         }
 
-        function toggleCloseStatus(batchId, itemId, isCurrentlyClosed, effectiveInstalled) {
-            let actionText = isCurrentlyClosed ? 'открыть' : 'закрыть (заморозить)';
-            if (!confirm(`Вы уверены, что хотите ${actionText} эту позицию?`)) return;
-
-            let updates = {};
-            updates['closed'] = !isCurrentlyClosed;
-            updates['closedAtCount'] = isCurrentlyClosed ? 0 : effectiveInstalled;
-            invV2Ref.child(batchId).child('items').child(itemId).update(updates).catch(e => alert(e.message));
-        }
-
         function deleteItem(batchId, itemId) {
             if (confirm('ВНИМАНИЕ! Удаление позиции навсегда сотрет введенные вручную остатки на складе и у монтажников для этой строки. Вы точно хотите удалить эту позицию?')) {
                 invV2Ref.child(batchId).child('items').child(itemId).remove();
@@ -1210,114 +1252,19 @@
             container.innerHTML = '';
             if (!inventoryV2Data) return;
 
-            let sigs = new Set();
-            window.allSignatures = [];
-            Object.values(inventoryV2Data).forEach(b => {
-                if(b.items) {
-                    Object.values(b.items).forEach(item => {
-                        let bk = item.brandKey ? item.brandKey.toLowerCase().trim() : '';
-                        let sk = item.sizeKey ? item.sizeKey.toLowerCase().trim() : '';
-                        let key = bk + '_' + sk;
-                        if (!sigs.has(key)) {
-                            sigs.add(key);
-                            window.allSignatures.push({ key: key, b: bk, s: sk });
-                        }
-                    });
-                }
-            });
-
-            // Сортируем сигнатуры по убыванию длины, чтобы специфичный ключ (например (2025)) перебивал общий
-            window.allSignatures.sort((a, b) => (b.b.length + b.s.length) - (a.b.length + a.s.length));
-
-            // Формируем очереди партий для каждого ключа
-            let sigQueues = {};
-            let sortedBatches = Object.entries(inventoryV2Data).sort((a,b) => a[1].order - b[1].order);
-            sortedBatches.forEach(([bId, bData]) => {
-                if(bData.items) {
-                    let sortedItems = Object.entries(bData.items).sort((a,b) => a[1].order - b[1].order);
-                    sortedItems.forEach(([iId, iData]) => {
-                        let sigKey = (iData.brandKey || '').toLowerCase().trim() + '_' + (iData.sizeKey || '').toLowerCase().trim();
-                        if (!sigQueues[sigKey]) sigQueues[sigKey] = [];
-                        sigQueues[sigKey].push({
-                            batchId: bId,
-                            itemId: iId,
-                            batchName: bData.name, // Для поиска конкретной партии по имени
-                            closed: iData.closed,
-                            closedAtCount: iData.closedAtCount || 0
-                        });
-                    });
-                }
-            });
-
+            let allItems = getAllItemsFromInventory();
             let processedItemsInstalled = {};
-            Object.values(sigQueues).forEach(queue => queue.forEach(q => processedItemsInstalled[q.itemId] = 0));
+            allItems.forEach(item => processedItemsInstalled[item.itemId] = 0);
 
-            let parseDateForSort = str => {
-                if (!str || str === '-') return 0;
-                let parts = str.split(',');
-                let dParts = (parts[0] ? parts[0].trim() : '').split('.');
-                let tParts = (parts[1] ? parts[1].trim() : '00:00').split(':');
-                if(dParts.length !== 3) return 0;
-                return new Date(dParts[2], parseInt(dParts[1])-1, dParts[0], tParts[0] ? parseInt(tParts[0]) : 0, tParts[1] ? parseInt(tParts[1]) : 0).getTime();
-            };
-
-            let sortedRecords = [...dbList].sort((a, b) => {
-                let timeA = a.timestamp || parseDateForSort(a.date);
-                let timeB = b.timestamp || parseDateForSort(b.date);
-                return timeA - timeB;
-            });
-
-            // РАСПРЕДЕЛЕНИЕ УСТАНОВОК (АЛГОРИТМ С ИСКЛЮЧЕНИЕМ ДЛЯ G6)
-            sortedRecords.forEach(record => {
-                if (!record.model) return;
-                let m = record.model.toLowerCase();
-                let matchedSig = null;
-                for (let sig of window.allSignatures) {
-                    if (m.includes(sig.b) && m.includes(sig.s)) {
-                        matchedSig = sig.key;
-                        break;
-                    }
-                }
-
-                if (matchedSig && sigQueues[matchedSig]) {
-                    let queue = sigQueues[matchedSig];
-                    let allocated = false;
-                    let serial = record.serial ? String(record.serial).replace(/\D/g, '') : '';
-
-                    // СПЕЦИАЛЬНО ДЛЯ G6: Жесткая привязка по заводскому номеру
-                    if (matchedSig.includes('g6')) {
-                        if (serial.startsWith('15226')) {
-                            let target = queue.find(q => q.batchName && q.batchName.includes('1775'));
-                            if (target) {
-                                processedItemsInstalled[target.itemId]++;
-                                allocated = true;
-                            }
-                        } else if (serial.startsWith('56225')) {
-                            let target = queue.find(q => q.batchName && q.batchName.includes('608'));
-                            if (target) {
-                                processedItemsInstalled[target.itemId]++;
-                                allocated = true;
-                            }
-                        }
-                    }
-
-                    // Если не G6 или серийник не совпал с известным префиксом - работает обычный каскад
-                    if (!allocated) {
-                        for (let i = 0; i < queue.length; i++) {
-                            let qItem = queue[i];
-                            if (qItem.closed) {
-                                if (processedItemsInstalled[qItem.itemId] < qItem.closedAtCount) {
-                                    processedItemsInstalled[qItem.itemId]++;
-                                    break;
-                                }
-                            } else {
-                                processedItemsInstalled[qItem.itemId]++;
-                                break;
-                            }
-                        }
-                    }
+            // РАСПРЕДЕЛЕНИЕ УСТАНОВОК (УНИВЕРСАЛЬНЫЙ АЛГОРИТМ ПО ПРЕФИКСАМ)
+            dbList.forEach(record => {
+                let queue = findMatchingItemQueue(record, allItems);
+                if (queue && queue.length > 0) {
+                    processedItemsInstalled[queue[0].itemId]++; 
                 }
             });
+
+            let sortedBatches = Object.entries(inventoryV2Data).sort((a,b) => a[1].order - b[1].order);
 
             sortedBatches.forEach(([batchId, batchData]) => {
                 let isCollapsedClass = batchData.isExpanded ? '' : 'collapsed';
@@ -1341,14 +1288,18 @@
                                         <th class="text-center" style="width: 15%;">У монтажников</th>
                                         <th class="text-center" style="width: 15%;">Установлено</th>
                                         <th class="text-center" style="width: 15%;">Итого</th>
-                                        <th class="text-center" style="width: 15%;">Статус</th>
+                                        <th class="text-center" style="width: 15%;">Действия</th>
                                     </tr>
                                 </thead>
                                 <tbody>
                 `;
                 
                 if (batchData.items && Object.keys(batchData.items).length > 0) {
-                    let sortedItems = Object.entries(batchData.items).sort((a,b) => a[1].order - b[1].order);
+                    let sortedItems = Object.entries(batchData.items).sort((a,b) => {
+                        let nameA = (a[1].displayName || '').toLowerCase();
+                        let nameB = (b[1].displayName || '').toLowerCase();
+                        return nameA.localeCompare(nameB, undefined, {numeric: true});
+                    });
                     
                     sortedItems.forEach(([itemId, itemData]) => {
                         let effectiveInstalled = processedItemsInstalled[itemId] || 0;
@@ -1371,14 +1322,8 @@
                         } else {
                             totalStyle += " color: var(--accent-blue);";
                         }
-                        
-                        let rowClass = itemData.closed ? 'frozen-row' : '';
-                        
-                        let btnStatus = itemData.closed 
-                            ? `<button class="btn btn-outline btn-small" onclick="toggleCloseStatus('${batchId}', '${itemId}', true, ${effectiveInstalled})" title="Открыть перелив">🔓</button>` 
-                            : `<button class="btn btn-outline btn-small" style="background-color: #f1f5f9; color: var(--text-primary);" onclick="toggleCloseStatus('${batchId}', '${itemId}', false, ${effectiveInstalled})" title="Закрыть (заморозить) позицию">🔒</button>`;
 
-                        html += `<tr class="${rowClass}">
+                        html += `<tr>
                             <td>
                                 <b>${itemData.displayName}</b>
                             </td>
@@ -1396,7 +1341,6 @@
                             </td>
                             <td class="text-center">
                                 <div style="display:flex; justify-content:center; gap:4px;">
-                                    ${btnStatus}
                                     <button class="btn btn-outline btn-small" style="padding: 4px 8px;" onclick="editItem('${batchId}', '${itemId}')" title="Редактировать ключи и название">✎</button>
                                     <button class="btn btn-outline btn-small" style="color:var(--danger-color); padding: 4px 8px;" onclick="deleteItem('${batchId}', '${itemId}')" title="Удалить">✕</button>
                                 </div>
@@ -1486,124 +1430,14 @@
                 }
             });
 
-            // Раскрашивание партий (АЛГОРИТМ С ИСКЛЮЧЕНИЕМ ДЛЯ G6)
+            let allItems = getAllItemsFromInventory();
             let itemColors = {};
+            
             if (inventoryV2Data) {
-                let sigs = [];
-                window.allSignatures = [];
-                Object.values(inventoryV2Data).forEach(b => {
-                    if(b.items) {
-                        Object.values(b.items).forEach(item => {
-                            let bk = item.brandKey ? item.brandKey.toLowerCase().trim() : '';
-                            let sk = item.sizeKey ? item.sizeKey.toLowerCase().trim() : '';
-                            let key = bk + '_' + sk;
-                            if (!sigs.some(s => s.key === key)) {
-                                sigs.push({ key: key, b: bk, s: sk });
-                                window.allSignatures.push({ key: key, b: bk, s: sk });
-                            }
-                        });
-                    }
-                });
-
-                // Сортируем сигнатуры по убыванию длины (более специфичные ключи проверяются первыми)
-                sigs.sort((a, b) => (b.b.length + b.s.length) - (a.b.length + a.s.length));
-                window.allSignatures.sort((a, b) => (b.b.length + b.s.length) - (a.b.length + a.s.length));
-
-                let parseDateForSort = str => {
-                    if (!str || str === '-') return 0;
-                    let parts = str.split(',');
-                    let dParts = (parts[0] ? parts[0].trim() : '').split('.');
-                    let tParts = (parts[1] ? parts[1].trim() : '00:00').split(':');
-                    if(dParts.length !== 3) return 0;
-                    return new Date(dParts[2], parseInt(dParts[1])-1, dParts[0], tParts[0] ? parseInt(tParts[0]) : 0, tParts[1] ? parseInt(tParts[1]) : 0).getTime();
-                };
-
-                let sigQueues = {};
-                let sortedBatches = Object.entries(inventoryV2Data).sort((a,b) => a[1].order - b[1].order);
-                sortedBatches.forEach(([bId, bData]) => {
-                    if(bData.items) {
-                        let sortedItems = Object.entries(bData.items).sort((a,b) => a[1].order - b[1].order);
-                        sortedItems.forEach(([iId, iData]) => {
-                            let sigKey = (iData.brandKey || '').toLowerCase().trim() + '_' + (iData.sizeKey || '').toLowerCase().trim();
-                            if (!sigQueues[sigKey]) sigQueues[sigKey] = [];
-                            sigQueues[sigKey].push({
-                                batchId: bId,
-                                itemId: iId,
-                                batchName: bData.name,
-                                closed: iData.closed,
-                                closedAtCount: iData.closedAtCount || 0
-                            });
-                        });
-                    }
-                });
-
-                let sortedRecords = [...dbList].sort((a, b) => {
-                    let timeA = a.timestamp || parseDateForSort(a.date);
-                    let timeB = b.timestamp || parseDateForSort(b.date);
-                    return timeA - timeB;
-                });
-
-                let itemAllocationsForColor = {};
-
-                sortedRecords.forEach(record => {
-                    if (!record.model) return;
-                    let m = record.model.toLowerCase();
-                    let matchedSig = null;
-                    for (let sig of sigs) {
-                        if (m.includes(sig.b) && m.includes(sig.s)) {
-                            matchedSig = sig.key;
-                            break;
-                        }
-                    }
-
-                    if (matchedSig && sigQueues[matchedSig]) {
-                        let queue = sigQueues[matchedSig];
-                        let allocated = false;
-                        let assignedQueueIndex = 0;
-                        let serial = record.serial ? String(record.serial).replace(/\D/g, '') : '';
-
-                        // Исключение по номеру для G6
-                        if (matchedSig.includes('g6')) {
-                            if (serial.startsWith('15226')) {
-                                let targetIndex = queue.findIndex(q => q.batchName && q.batchName.includes('1775'));
-                                if (targetIndex !== -1) {
-                                    assignedQueueIndex = targetIndex;
-                                    itemAllocationsForColor[queue[targetIndex].itemId] = (itemAllocationsForColor[queue[targetIndex].itemId] || 0) + 1;
-                                    allocated = true;
-                                }
-                            } else if (serial.startsWith('56225')) {
-                                let targetIndex = queue.findIndex(q => q.batchName && q.batchName.includes('608'));
-                                if (targetIndex !== -1) {
-                                    assignedQueueIndex = targetIndex;
-                                    itemAllocationsForColor[queue[targetIndex].itemId] = (itemAllocationsForColor[queue[targetIndex].itemId] || 0) + 1;
-                                    allocated = true;
-                                }
-                            }
-                        }
-
-                        if (!allocated) {
-                            for (let i = 0; i < queue.length; i++) {
-                                let qItem = queue[i];
-                                let currentCount = itemAllocationsForColor[qItem.itemId] || 0;
-                                if (qItem.closed) {
-                                    if (currentCount < qItem.closedAtCount) {
-                                        itemAllocationsForColor[qItem.itemId] = currentCount + 1;
-                                        assignedQueueIndex = i;
-                                        allocated = true;
-                                        break;
-                                    }
-                                } else {
-                                    itemAllocationsForColor[qItem.itemId] = currentCount + 1;
-                                    assignedQueueIndex = i;
-                                    allocated = true;
-                                    break;
-                                }
-                            }
-                        }
-
-                        if (allocated) {
-                            itemColors[record.id] = assignedQueueIndex === 0 ? 'var(--accent-blue)' : 'var(--batch-new-color)';
-                        }
+                dbList.forEach(record => {
+                    let queue = findMatchingItemQueue(record, allItems);
+                    if (queue && queue.length > 0) {
+                        itemColors[record.id] = 'var(--accent-blue)';
                     }
                 });
             }
@@ -1617,24 +1451,16 @@
                 let errorTitle = "";
                 
                 if (item.serial && item.serial !== '-') {
-                    let digits = item.serial.replace(/\D/g, ''); 
                     let isDuplicate = serialCounts[item.serial] > 1;
-                    
-                    let expectedPrefixes = getExpectedPrefix(item.model);
-                    let wrongPrefix = expectedPrefixes && !expectedPrefixes.some(prefix => item.serial.startsWith(prefix));
-                    
-                    let wrongLength = digits.length !== 11;
+                    let queue = findMatchingItemQueue(item, allItems);
+                    let noMatch = !queue || queue.length === 0;
                     
                     if (isDuplicate) {
                         errorTitle += "Дубликат серийного номера! ";
                         serialError = true;
                     }
-                    if (wrongPrefix) {
-                        errorTitle += `Неверное начало номера (ожидается ${expectedPrefixes.join(' или ')})! `;
-                        serialError = true;
-                    }
-                    if (wrongLength) {
-                        errorTitle += `В серийном номере ${digits.length} цифр (должно быть ровно 11)! `;
+                    if (noMatch) {
+                        errorTitle += `Неизвестный префикс номера или модели (не найдено в справочнике партий)! `;
                         serialError = true;
                     }
                 }
@@ -2264,13 +2090,11 @@
                         let itemId = 'item_' + Date.now() + '_' + idx;
                         newData[batch1Id].items[itemId] = {
                             displayName: m,
-                            brandKey: brand,
-                            sizeKey: size,
+                            searchModel: brand,
+                            searchSerial: size,
                             warehouse: oldItem.warehouse || 0,
                             base_installers: oldItem.base_installers || 0,
                             offset_installed: oldItem.offset_installed || 0,
-                            closed: false,
-                            closedAtCount: 0,
                             planned: planned,
                             order: idx
                         };

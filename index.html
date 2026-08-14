@@ -246,7 +246,7 @@
             background-color: rgba(2, 132, 199, 0.1); border-right: 2px solid var(--accent-cyan);
         }
         
-        td[data-field="objectName"], td[data-field="address"], td[data-field="city"], td[data-field="comment"] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        td[data-field="objectName"], td[data-field="address"], td[data-field="comment"] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         .row-checkbox, #selectAllCheckbox { cursor: pointer; width: 16px; height: 16px; margin: 0; accent-color: var(--accent-cyan); }
         
@@ -353,12 +353,10 @@
         <section id="summary" class="tab-content active">
             <div class="controls">
                 <div class="filters">
-                    <label style="font-weight:600; margin-right:5px; font-size:0.9rem;">Месяц:</label>
-                    <input type="month" id="filterMonth" onchange="renderAll()">
-                    <button class="btn btn-outline btn-small" onclick="document.getElementById('filterMonth').value=''; renderAll();">Сбросить</button>
-                    <button class="btn btn-primary btn-small" onclick="openImportModal()">Импорт текста</button>
-                    <button class="btn btn-success btn-small" onclick="openAddRecordModal()">Добавить запись</button>
-                    <button class="btn btn-danger btn-small" onclick="confirmDeleteAll()">Удалить всё</button>
+                    <label style="font-weight:600; margin-right:5px; font-size:0.9rem;">Период:</label>
+                    <input type="month" id="filterMonth" onchange="document.getElementById('filterDate').value=''; renderAll();" title="Фильтр по месяцу">
+                    <input type="date" id="filterDate" onchange="document.getElementById('filterMonth').value=''; renderAll();" title="Фильтр по дню">
+                    <button class="btn btn-outline btn-small" onclick="document.getElementById('filterMonth').value=''; document.getElementById('filterDate').value=''; renderAll();">Сбросить</button>
                 </div>
             </div>
             <div class="stats-grid" id="statsGrid"></div>
@@ -379,7 +377,7 @@
         <section id="fullTable" class="tab-content">
             <div id="fullTableControls" class="controls">
                 <div style="flex: 1; display:flex; align-items:center;">
-                    <input type="text" id="searchInput" placeholder="Поиск по таблице..." onkeyup="filterTable()" style="max-width: 250px; width: 100%;">
+                    <input type="text" id="searchInput" placeholder="Поиск по таблице..." oninput="filterTable()" style="max-width: 250px; width: 100%;">
                 </div>
                 
                 <div id="inlineEditControls" style="display:flex; justify-content:center; gap:8px; flex: 1;">
@@ -388,7 +386,9 @@
                     <button class="btn btn-outline" id="btnInlineCancel" onclick="cancelInlineEdit()" style="display:none;">Отмена</button>
                 </div>
 
-                <div style="display:flex; justify-content:flex-end; gap:8px; flex: 1;">
+                <div style="display:flex; justify-content:flex-end; gap:8px; flex: 1; flex-wrap: wrap;">
+                    <button class="btn btn-primary" onclick="openImportModal()">Импорт текста</button>
+                    <button class="btn btn-success" onclick="openAddRecordModal()">Добавить запись</button>
                     <button class="btn btn-warning" onclick="openExcelImportModal()">Импорт из Excel</button>
                     <button class="btn btn-primary" onclick="exportToExcel()">Выгрузить Excel</button>
                 </div>
@@ -402,24 +402,23 @@
                             <th onclick="sortTable(1)">Монтажник <span class="sort-icon" id="sort-1"></span></th>
                             <th class="resizable" data-col="objectName" onclick="sortTable(2)">Объект <span class="sort-icon" id="sort-2"></span><div class="resizer"></div></th>
                             <th class="resizable" data-col="address" onclick="sortTable(3)">Адрес <span class="sort-icon" id="sort-3"></span><div class="resizer"></div></th>
-                            <th class="resizable" data-col="city" onclick="sortTable(4)">Город <span class="sort-icon" id="sort-4"></span><div class="resizer"></div></th>
-                            <th onclick="sortTable(5)">Потребитель <span class="sort-icon" id="sort-5"></span></th>
-                            <th onclick="sortTable(6)">Должность <span class="sort-icon" id="sort-6"></span></th>
-                            <th onclick="sortTable(7, 'number')">Мощн. <span class="sort-icon" id="sort-7"></span></th>
-                            <th onclick="sortTable(8, 'checkbox')" class="text-center" style="z-index: 11;">Паспорт <span class="sort-icon" id="sort-8"></span></th>
-                            <th onclick="sortTable(9)">Модель <span class="sort-icon" id="sort-9"></span></th>
-                            <th data-col="serial" onclick="sortTable(10)">№ <span class="sort-icon" id="sort-10"></span></th>
-                            <th onclick="sortTable(11)">Направл. <span class="sort-icon" id="sort-11"></span></th>
-                            <th data-col="simCardNumber" onclick="sortTable(12)">SIM <span class="sort-icon" id="sort-12"></span></th>
-                            <th onclick="sortTable(13)">Ст. модель <span class="sort-icon" id="sort-13"></span></th>
-                            <th data-col="oldMeterSerial" onclick="sortTable(14)">Ст. № <span class="sort-icon" id="sort-14"></span></th>
-                            <th onclick="sortTable(15)">Ст. показ. <span class="sort-icon" id="sort-15"></span></th>
-                            <th data-col="controllerSeal" onclick="sortTable(16)">Пломба <span class="sort-icon" id="sort-16"></span></th>
-                            <th onclick="sortTable(17)">Расположение <span class="sort-icon" id="sort-17"></span></th>
-                            <th onclick="sortTable(18)">ЛС <span class="sort-icon" id="sort-18"></span></th>
-                            <th onclick="sortTable(19)">GPRS <span class="sort-icon" id="sort-19"></span></th>
-                            <th onclick="sortTable(20)">Коммент. <span class="sort-icon" id="sort-20"></span></th>
-                            <th onclick="sortTable(21, 'date')">Дата <span class="sort-icon" id="sort-21"></span></th>
+                            <th onclick="sortTable(4)">Потребитель <span class="sort-icon" id="sort-4"></span></th>
+                            <th onclick="sortTable(5)">Должность <span class="sort-icon" id="sort-5"></span></th>
+                            <th onclick="sortTable(6, 'number')">Мощн. <span class="sort-icon" id="sort-6"></span></th>
+                            <th onclick="sortTable(7, 'checkbox')" class="text-center" style="z-index: 11;">Паспорт <span class="sort-icon" id="sort-7"></span></th>
+                            <th onclick="sortTable(8)">Модель <span class="sort-icon" id="sort-8"></span></th>
+                            <th data-col="serial" onclick="sortTable(9)">№ <span class="sort-icon" id="sort-9"></span></th>
+                            <th onclick="sortTable(10)">Направл. <span class="sort-icon" id="sort-10"></span></th>
+                            <th data-col="simCardNumber" onclick="sortTable(11)">SIM <span class="sort-icon" id="sort-11"></span></th>
+                            <th onclick="sortTable(12)">Ст. модель <span class="sort-icon" id="sort-12"></span></th>
+                            <th data-col="oldMeterSerial" onclick="sortTable(13)">Ст. № <span class="sort-icon" id="sort-13"></span></th>
+                            <th onclick="sortTable(14)">Ст. показ. <span class="sort-icon" id="sort-14"></span></th>
+                            <th data-col="controllerSeal" onclick="sortTable(15)">Пломба <span class="sort-icon" id="sort-15"></span></th>
+                            <th onclick="sortTable(16)">Расположение <span class="sort-icon" id="sort-16"></span></th>
+                            <th onclick="sortTable(17)">ЛС <span class="sort-icon" id="sort-17"></span></th>
+                            <th onclick="sortTable(18)">GPRS <span class="sort-icon" id="sort-18"></span></th>
+                            <th onclick="sortTable(19)">Коммент. <span class="sort-icon" id="sort-19"></span></th>
+                            <th onclick="sortTable(20, 'date')">Дата <span class="sort-icon" id="sort-20"></span></th>
                             <th class="text-center" style="z-index: 11;">Действия</th>
                         </tr>
                     </thead>
@@ -531,7 +530,7 @@
         </div>
     </div>
 
-    <!-- Старые модалки (Редактирование, Детализация, Импорт txt, Удаление) -->
+    <!-- Старые модалки (Редактирование, Детализация, Импорт txt) -->
     <div class="modal-overlay" id="editModal">
         <div class="modal">
             <div class="modal-header"><span id="editTitle">Редактирование записи</span><button class="modal-close" onclick="closeModal('editModal')">&times;</button></div>
@@ -683,21 +682,6 @@
             <div class="modal-footer">
                 <button class="btn btn-outline" onclick="closeModal('importModal')">Отмена</button>
                 <button class="btn btn-primary" onclick="importFromText()">Импортировать</button>
-            </div>
-        </div>
-    </div>
-
-    <div class="modal-overlay" id="confirmDeleteModal">
-        <div class="modal" style="max-width: 450px;">
-            <div class="modal-header"><span>Удалить все записи?</span><button class="modal-close" onclick="closeModal('confirmDeleteModal')">&times;</button></div>
-            <div class="modal-body">
-                <p style="color:var(--danger-color); font-weight:600; margin-bottom: 12px;">Это действие необратимо! Все записи будут удалены из Firebase.</p>
-                <p style="margin-bottom: 8px;">Введите слово <b>"удалить"</b> для подтверждения:</p>
-                <input type="text" id="deleteConfirmInput" placeholder="введите удалить" style="width:100%;">
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-outline" onclick="closeModal('confirmDeleteModal')">Отмена</button>
-                <button class="btn btn-danger" onclick="executeDeleteAll()">Удалить всё</button>
             </div>
         </div>
     </div>
@@ -938,16 +922,25 @@
         function renderSummary() {
             const tbody = document.getElementById('summaryTableBody');
             const filterMonth = document.getElementById('filterMonth').value;
+            const filterDate = document.getElementById('filterDate').value;
             let stats = {};
 
             dbList.forEach(item => {
-                if (filterMonth && item.date) {
+                if (item.date) {
                     let parts = item.date.split(',')[0].split('.');
                     if (parts.length === 3) {
                         let recordMonth = `${parts[2]}-${parts[1]}`;
-                        if (recordMonth !== filterMonth) return;
+                        let recordDay = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                        
+                        if (filterMonth && recordMonth !== filterMonth) return;
+                        if (filterDate && recordDay !== filterDate) return;
+                    } else if (filterMonth || filterDate) {
+                        return;
                     }
+                } else if (filterMonth || filterDate) {
+                    return;
                 }
+                
                 let installer = item.installer || 'Неизвестно';
                 if (!stats[installer]) stats[installer] = { count: 0, records: [] };
                 stats[installer].count++;
@@ -972,13 +965,21 @@
 
         function showDetails(installerName) {
             const filterMonth = document.getElementById('filterMonth').value;
+            const filterDate = document.getElementById('filterDate').value;
             let records = dbList.filter(item => item.installer === installerName);
 
-            if (filterMonth) {
+            if (filterMonth || filterDate) {
                 records = records.filter(item => {
                     if(!item.date) return false;
                     let parts = item.date.split(',')[0].split('.');
-                    return parts.length === 3 && `${parts[2]}-${parts[1]}` === filterMonth;
+                    if(parts.length === 3) {
+                        let recordMonth = `${parts[2]}-${parts[1]}`;
+                        let recordDay = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                        if (filterMonth && recordMonth !== filterMonth) return false;
+                        if (filterDate && recordDay !== filterDate) return false;
+                        return true;
+                    }
+                    return false;
                 });
             }
 
@@ -1374,7 +1375,9 @@
 
             for (let i = 0; i < trs.length; i++) {
                 if(trs[i].classList.contains('editing-row')) continue; 
-                let rowText = trs[i].innerText.toLowerCase();
+                // Использование textContent вместо innerText решает проблему зависания,
+                // так как браузеру не нужно просчитывать стили и видимость элементов (это происходит мгновенно).
+                let rowText = trs[i].textContent.toLowerCase();
                 if (rowText.includes(filter)) {
                     trs[i].style.display = "";
                 } else {
@@ -1384,7 +1387,7 @@
         }
 
         function applyColumnWidths() {
-            ['objectName', 'address', 'city'].forEach(colId => {
+            ['objectName', 'address'].forEach(colId => {
                 const savedWidth = localStorage.getItem('botstm_colWidth_' + colId);
                 if (savedWidth) {
                     const th = document.querySelector(`th[data-col="${colId}"]`);
@@ -1488,7 +1491,6 @@
                     <td data-field="installer"><b>${item.installer || '-'}</b></td>
                     <td data-field="objectName">${item.objectName || '-'}</td>
                     <td data-field="address" title="${item.address || '-'}">${item.address || '-'}</td>
-                    <td data-field="city">${item.city || '-'}</td>
                     <td data-field="consumer">${item.consumer || '-'}</td>
                     <td data-field="position">${item.position || '-'}</td>
                     <td class="${powerClass}" data-field="totalPower">${item.totalPower || '-'}</td>
@@ -1512,7 +1514,7 @@
                     </td>
                 </tr>`;
             });
-            if (html === '') html = '<tr><td colspan="23" style="text-align:center; padding:24px; color:var(--text-muted);">Нет записей</td></tr>';
+            if (html === '') html = '<tr><td colspan="22" style="text-align:center; padding:24px; color:var(--text-muted);">Нет записей</td></tr>';
             
             tbody.innerHTML = html;
             
@@ -1708,17 +1710,6 @@
             const id = document.getElementById('e_recordId').value;
             if (id && confirm('Вы уверены, что хотите удалить эту запись? Действие необратимо.')) {
                 dbRef.child(id).remove().then(() => closeModal('editModal')).catch(e => alert(e.message));
-            }
-        }
-
-        function confirmDeleteAll() {
-            document.getElementById('deleteConfirmInput').value = '';
-            openModal('confirmDeleteModal');
-        }
-
-        function executeDeleteAll() {
-            if (document.getElementById('deleteConfirmInput').value.trim() === 'удалить' && confirm('Удалить все?')) {
-                dbRef.remove().then(() => { closeModal('confirmDeleteModal'); alert('Все удалено.'); });
             }
         }
 
@@ -1967,7 +1958,7 @@
         function exportToExcel() {
             if (dbList.length === 0) return alert("Нет данных");
             
-            const headers = ['ID_Системы', 'Монтажник', 'Объект', 'Адрес', 'Город', 'Потребитель', 'Должность', 'Мощн.', 'Паспорт', 'Модель', '№', 'Направл.', 'SIM', 'Ст. модель', 'Ст. №', 'Ст. показ.', 'Пломба', 'Расположение', 'ЛС', 'GPRS', 'Комментарий', 'Дата'];
+            const headers = ['ID_Системы', 'Монтажник', 'Объект', 'Адрес', 'Потребитель', 'Должность', 'Мощн.', 'Паспорт', 'Модель', '№', 'Направл.', 'SIM', 'Ст. модель', 'Ст. №', 'Ст. показ.', 'Пломба', 'Расположение', 'ЛС', 'GPRS', 'Комментарий', 'Дата'];
             
             let data = [headers];
             
@@ -1979,7 +1970,6 @@
                     item.installer || '',
                     item.objectName || '',
                     item.address || '',
-                    item.city || '',
                     item.consumer || '',
                     item.position || '',
                     item.totalPower || '',

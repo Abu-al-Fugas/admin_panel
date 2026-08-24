@@ -409,17 +409,18 @@
                             <th onclick="sortTable(8, 'checkbox')" class="text-center" style="z-index: 11;">Паспорт <span class="sort-icon" id="sort-8"></span></th>
                             <th onclick="sortTable(9)">Модель <span class="sort-icon" id="sort-9"></span></th>
                             <th data-col="serial" onclick="sortTable(10)">№ <span class="sort-icon" id="sort-10"></span></th>
-                            <th onclick="sortTable(11)">Направл. <span class="sort-icon" id="sort-11"></span></th>
-                            <th data-col="simCardNumber" onclick="sortTable(12)">SIM <span class="sort-icon" id="sort-12"></span></th>
-                            <th onclick="sortTable(13)">Ст. модель <span class="sort-icon" id="sort-13"></span></th>
-                            <th data-col="oldMeterSerial" onclick="sortTable(14)">Ст. № <span class="sort-icon" id="sort-14"></span></th>
-                            <th onclick="sortTable(15)">Ст. показ. <span class="sort-icon" id="sort-15"></span></th>
-                            <th data-col="controllerSeal" onclick="sortTable(16)">Пломба <span class="sort-icon" id="sort-16"></span></th>
-                            <th onclick="sortTable(17)">Расположение <span class="sort-icon" id="sort-17"></span></th>
-                            <th onclick="sortTable(18)">ЛС <span class="sort-icon" id="sort-18"></span></th>
-                            <th onclick="sortTable(19)">GPRS <span class="sort-icon" id="sort-19"></span></th>
-                            <th onclick="sortTable(20)">Коммент. <span class="sort-icon" id="sort-20"></span></th>
-                            <th onclick="sortTable(21, 'date')">Дата <span class="sort-icon" id="sort-21"></span></th>
+                            <th onclick="sortTable(11)">Дата поверки <span class="sort-icon" id="sort-11"></span></th>
+                            <th onclick="sortTable(12)">Направл. <span class="sort-icon" id="sort-12"></span></th>
+                            <th data-col="simCardNumber" onclick="sortTable(13)">SIM <span class="sort-icon" id="sort-13"></span></th>
+                            <th onclick="sortTable(14)">Ст. модель <span class="sort-icon" id="sort-14"></span></th>
+                            <th data-col="oldMeterSerial" onclick="sortTable(15)">Ст. № <span class="sort-icon" id="sort-15"></span></th>
+                            <th onclick="sortTable(16)">Ст. показ. <span class="sort-icon" id="sort-16"></span></th>
+                            <th data-col="controllerSeal" onclick="sortTable(17)">Пломба <span class="sort-icon" id="sort-17"></span></th>
+                            <th onclick="sortTable(18)">Расположение <span class="sort-icon" id="sort-18"></span></th>
+                            <th onclick="sortTable(19)">ЛС <span class="sort-icon" id="sort-19"></span></th>
+                            <th onclick="sortTable(20)">GPRS <span class="sort-icon" id="sort-20"></span></th>
+                            <th onclick="sortTable(21)">Коммент. <span class="sort-icon" id="sort-21"></span></th>
+                            <th onclick="sortTable(22, 'date')">Дата <span class="sort-icon" id="sort-22"></span></th>
                             <th class="text-center" style="z-index: 11;">Действия</th>
                         </tr>
                     </thead>
@@ -531,7 +532,7 @@
         </div>
     </div>
 
-    <!-- Старые модалки (Редактирование, Детализация, Импорт txt) -->
+    <!-- Модалка редактирования/добавления -->
     <div class="modal-overlay" id="editModal">
         <div class="modal">
             <div class="modal-header"><span id="editTitle">Редактирование записи</span><button class="modal-close" onclick="closeModal('editModal')">&times;</button></div>
@@ -544,7 +545,7 @@
                                 <div class="form-grid">
                                     <div class="form-group"><label>Объект</label><input type="text" id="e_objectName"></div>
                                     <div class="form-group"><label>Адрес</label><input type="text" id="e_address"></div>
-                                    <div class="form-group"><label>Город</label><input type="text" id="e_city"></div>
+                                    <div class="form-group"><label>Город/район</label><input type="text" id="e_city"></div>
                                     <div class="form-group"><label>Расположение счетчика</label>
                                         <div class="input-with-select">
                                             <input type="text" id="e_uirgLocation">
@@ -621,6 +622,7 @@
                                         </div>
                                     </div>
                                     <div class="form-group"><label>Серийный №</label><input type="text" id="e_serial"></div>
+                                    <div class="form-group"><label>Дата поверки</label><input type="text" id="e_verificationDate"></div>
                                     <div class="form-group"><label>Мощность (м³/ч)</label><input type="text" id="e_totalPower"></div>
                                     <div class="form-group"><label>Направление</label>
                                         <div class="input-with-select">
@@ -1376,8 +1378,6 @@
 
             for (let i = 0; i < trs.length; i++) {
                 if(trs[i].classList.contains('editing-row')) continue; 
-                // Использование textContent вместо innerText решает проблему зависания,
-                // так как браузеру не нужно просчитывать стили и видимость элементов (это происходит мгновенно).
                 let rowText = trs[i].textContent.toLowerCase();
                 if (rowText.includes(filter)) {
                     trs[i].style.display = "";
@@ -1499,6 +1499,7 @@
                     <td class="text-center"><input type="checkbox" class="passport-checkbox" onchange="updatePassport('${item.id}', this.checked)" ${item.passport ? 'checked' : ''}></td>
                     <td data-field="model"><b style="color:${modelColor};">${item.model || '-'}</b></td>
                     <td class="${serialClass}" data-field="serial">${item.serial || '-'}</td>
+                    <td data-field="verificationDate">${item.verificationDate || '-'}</td>
                     <td data-field="newGasDirection">${item.newGasDirection || '-'}</td>
                     <td data-field="simCardNumber">${item.simCardNumber || '-'}</td>
                     <td data-field="oldMeterModel">${item.oldMeterModel || '-'}</td>
@@ -1516,7 +1517,7 @@
                     </td>
                 </tr>`;
             });
-            if (html === '') html = '<tr><td colspan="23" style="text-align:center; padding:24px; color:var(--text-muted);">Нет записей</td></tr>';
+            if (html === '') html = '<tr><td colspan="24" style="text-align:center; padding:24px; color:var(--text-muted);">Нет записей</td></tr>';
             
             tbody.innerHTML = html;
             
@@ -1674,7 +1675,7 @@
             const item = dbList.find(i => i.id === id);
             if (!item) return;
             
-            ['objectName', 'address', 'city', 'uirgLocation', 'installer', 'model', 'serial', 'position', 'consumer', 'ls', 'totalPower', 'controllerSeal', 'oldMeterModel', 'oldMeterSerial', 'oldMeterReadings', 'newGasDirection', 'simCardNumber', 'gps', 'comment', 'date'].forEach(field => {
+            ['objectName', 'address', 'city', 'uirgLocation', 'installer', 'model', 'serial', 'verificationDate', 'position', 'consumer', 'ls', 'totalPower', 'controllerSeal', 'oldMeterModel', 'oldMeterSerial', 'oldMeterReadings', 'newGasDirection', 'simCardNumber', 'gps', 'comment', 'date'].forEach(field => {
                 document.getElementById('e_' + field).value = item[field] || '';
             });
             
@@ -1687,7 +1688,7 @@
         function saveEdit() {
             const id = document.getElementById('e_recordId').value;
             const data = {};
-            ['objectName', 'address', 'city', 'uirgLocation', 'installer', 'model', 'serial', 'position', 'consumer', 'ls', 'totalPower', 'controllerSeal', 'oldMeterModel', 'oldMeterSerial', 'oldMeterReadings', 'newGasDirection', 'simCardNumber', 'gps', 'comment', 'date'].forEach(field => {
+            ['objectName', 'address', 'city', 'uirgLocation', 'installer', 'model', 'serial', 'verificationDate', 'position', 'consumer', 'ls', 'totalPower', 'controllerSeal', 'oldMeterModel', 'oldMeterSerial', 'oldMeterReadings', 'newGasDirection', 'simCardNumber', 'gps', 'comment', 'date'].forEach(field => {
                 data[field] = document.getElementById('e_' + field).value.trim();
             });
             
@@ -1794,6 +1795,7 @@
                 position: ['Должность'], ls: ['Лицевой счет', 'ЛС'],
                 model: ['Модель нового счетчика', 'Модель нового', 'Модель'], 
                 serial: ['Серийный № нового счетчика', '№ нового', 'Серийный номер', 'Серийный №', '№'],
+                verificationDate: ['Дата поверки'],
                 gps: ['GPS', 'Координаты GPS'], comment: ['Комментарий', 'Коммент', 'Прим.', 'Примечание'], date: ['Дата', 'Дата/время генерации'],
                 controllerSeal: ['Пломба', 'Пломба контролера'], oldMeterModel: ['Модель старого'],
                 oldMeterSerial: ['№ старого'], oldMeterReadings: ['Показания старого'],
@@ -1891,7 +1893,7 @@
                     const excelMap = {
                         'Монтажник': 'installer', 'Объект': 'objectName', 'Город/район': 'city', 'Город': 'city', 'Адрес': 'address',
                         'Потребитель': 'consumer', 'Должность': 'position', 'Мощн.': 'totalPower',
-                        'Модель': 'model', '№': 'serial', 'Направл.': 'newGasDirection',
+                        'Модель': 'model', '№': 'serial', 'Дата поверки': 'verificationDate', 'Направл.': 'newGasDirection',
                         'SIM': 'simCardNumber', 'Ст. модель': 'oldMeterModel', 'Ст. №': 'oldMeterSerial',
                         'Ст. показ.': 'oldMeterReadings', 'Пломба': 'controllerSeal', 'Расположение': 'uirgLocation',
                         'ЛС': 'ls', 'GPRS': 'gps', 'Комментарий': 'comment', 'Дата': 'date'
@@ -1960,7 +1962,7 @@
         function exportToExcel() {
             if (dbList.length === 0) return alert("Нет данных");
             
-            const headers = ['ID_Системы', 'Монтажник', 'Объект', 'Город/район', 'Адрес', 'Потребитель', 'Должность', 'Мощн.', 'Паспорт', 'Модель', '№', 'Направл.', 'SIM', 'Ст. модель', 'Ст. №', 'Ст. показ.', 'Пломба', 'Расположение', 'ЛС', 'GPRS', 'Комментарий', 'Дата'];
+            const headers = ['ID_Системы', 'Монтажник', 'Объект', 'Город/район', 'Адрес', 'Потребитель', 'Должность', 'Мощн.', 'Паспорт', 'Модель', '№', 'Дата поверки', 'Направл.', 'SIM', 'Ст. модель', 'Ст. №', 'Ст. показ.', 'Пломба', 'Расположение', 'ЛС', 'GPRS', 'Комментарий', 'Дата'];
             
             let data = [headers];
             
@@ -1979,6 +1981,7 @@
                     item.passport ? 'Да' : 'Нет',
                     item.model || '',
                     item.serial || '',
+                    item.verificationDate || '',
                     item.newGasDirection || '',
                     item.simCardNumber || '',
                     item.oldMeterModel || '',

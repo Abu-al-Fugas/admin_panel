@@ -470,12 +470,12 @@
                         <input type="text" id="i_displayName">
                     </div>
                     <div class="form-group">
-                        <label>Префикс для поиска в названии модели (например: миртек)</label>
-                        <input type="text" id="i_searchModel">
-                    </div>
-                    <div class="form-group">
                         <label>Префикс поиска по заводскому номеру (например: 56225)</label>
-                        <input type="text" id="i_searchSerial">
+                        <input type="text" id="i_searchSerial" placeholder="Только цифры в начале номера">
+                    </div>
+                    <div class="form-group" style="display:none;">
+                        <!-- Скрытое поле, чтобы не потерять старые данные, но оно больше не нужно для логики -->
+                        <input type="text" id="i_searchModel">
                     </div>
                     <div class="form-group">
                         <label>Начальный остаток на складе</label>
@@ -714,7 +714,7 @@
                             batchId: bId,
                             itemId: iId,
                             batchName: bData.name,
-                            searchModel: iData.searchModel !== undefined ? iData.searchModel : (iData.brandKey || ''),
+                            displayName: iData.displayName,
                             searchSerial: iData.searchSerial !== undefined ? iData.searchSerial : (iData.sizeKey || ''),
                             itemColor: iData.itemColor || 'var(--accent-blue)'
                         });
@@ -724,44 +724,80 @@
             return allItems;
         }
 
-        // Вспомогательная функция сопоставления записи с очередью позиций
+        // Вспомогательная функция сопоставления записи с очередью позиций ИСКЛЮЧИТЕЛЬНО по префиксу серийного номера
         function findMatchingItemQueue(record, allItems) {
-            if (!record.model && !record.serial) return null;
-            let rModel = (record.model || '').toLowerCase().replace(/c/g, 'с').replace(/m/g, 'м').replace(/t/g, 'т').replace(/\s+/g, '');
-            let rSerial = record.serial ? String(record.serial).replace(/\D/g, '') : '';
+            if (!record.serial || record.serial === '-') return null;
+            let rSerial = String(record.serial).replace(/\D/g, '');
             
-            // Собираем уникальные сигнатуры (префиксы), сортируем от самых длинных к коротким
-            let sigs = [];
-            let sigMap = {};
+            let bestMatch = null;
+            let maxLen = 0;
+
             allItems.forEach(item => {
-                let key = item.searchModel + '___' + item.searchSerial;
-                if (!sigMap[key]) {
-                    sigMap[key] = true;
-                    sigs.push({
-                        key: key,
-                        sModel: item.searchModel.toLowerCase().replace(/c/g, 'с').replace(/m/g, 'м').replace(/t/g, 'т').replace(/\s+/g, ''),
-                        sSerial: item.searchSerial.replace(/\D/g, ''),
-                        len: (item.searchModel || '').length + (item.searchSerial || '').length
-                    });
+                let sSerial = (item.searchSerial || '').replace(/\D/g, '');
+                if (!sSerial) return; // Пропускаем позиции, у которых не задан префикс серийника
+
+                // Если серийник записи начинается с префикса из справочника
+                if (rSerial.startsWith(sSerial)) {
+                    // Ищем самое длинное совпадение (чтобы избежать конфликтов, например "152" и "15226")
+                    if (sSerial.length > maxLen) {
+                        maxLen = sSerial.length;
+                        bestMatch = item;
+                    }
                 }
             });
+
+            return bestMatch ? [bestMatch] : null; // Возвращаем в массиве для обратной совместимости с другим кодом
+        }
+
+        // Строгая функция проверки на несоответствие модели и серийного номера
+        function checkModelSerialMismatch(record, allItems) {
+            if (!record.serial || record.serial === '-') return { error: false, msg: '' };
             
-            sigs.sort((a, b) => b.len - a.len); 
+            let matchedItems = findMatchingItemQueue(record, allItems);
             
-            let matchedSigKey = null;
-            for (let sig of sigs) {
-                if (!sig.sModel && !sig.sSerial) continue;
-                let matchM = sig.sModel ? rModel.includes(sig.sModel) : true;
-                let matchS = sig.sSerial ? rSerial.startsWith(sig.sSerial) : true;
-                
-                if (matchM && matchS) {
-                    matchedSigKey = sig.key;
-                    break;
-                }
+            // Если по префиксу серийника вообще ничего не найдено в справочнике
+            if (!matchedItems || matchedItems.length === 0) {
+                return { error: true, msg: 'Неизвестный префикс серийного номера (не найдено в справочнике партий)! ' };
             }
+
+            let expectedItem = matchedItems[0]; // Точная позиция из справочника (модель + партия)
             
-            if (!matchedSigKey) return null;
-            return allItems.filter(item => (item.searchModel + '___' + item.searchSerial) === matchedSigKey);
+            let rModel = (record.model || '').toLowerCase().replace(/c/g, 'с').replace(/m/g, 'м').replace(/t/g, 'т').replace(/[\s\-]/g, '');
+            let iModelNorm = (expectedItem.displayName || '').toLowerCase().replace(/c/g, 'с').replace(/m/g, 'м').replace(/t/g, 'т').replace(/[\s\-]/g, '');
+
+            // 1. Проверка РАЗМЕРА (G4, G6, G10 и т.д.)
+            let rSizeMatch = rModel.match(/g\d{1,3}/);
+            let rSize = rSizeMatch ? rSizeMatch[0] : '';
+            let iSizeMatch = iModelNorm.match(/g\d{1,3}/);
+            let iSize = iSizeMatch ? iSizeMatch[0] : '';
+
+            // Если размер указан и там, и там, и он не совпадает -> Ошибка
+            if (iSize && rSize && rSize !== iSize) {
+                return { error: true, msg: `Несоответствие размера! По номеру ожидается: ${expectedItem.displayName}, а указано: ${record.model || 'пусто'}. ` };
+            }
+
+            // 2. Проверка БРЕНДА (Кросс-чек Миртек / СМТ / НЕО)
+            let isItemMirtek = iModelNorm.includes('миртек');
+            let isItemSmt = iModelNorm.includes('смт') || iModelNorm.includes('смарт') || iModelNorm.includes('комплекс');
+            let isItemNeo = iModelNorm.includes('нео');
+
+            let isTypedMirtek = rModel.includes('миртек');
+            let isTypedSmt = rModel.includes('смт') || rModel.includes('смарт') || rModel.includes('комплекс');
+            let isTypedNeo = rModel.includes('нео');
+
+            let brandError = false;
+            // Ошибка, если ждем Миртек, а написали СМТ или НЕО
+            if (isItemMirtek && (isTypedSmt || isTypedNeo)) brandError = true;
+            // Ошибка, если ждем СМТ, а написали Миртек или НЕО
+            if (isItemSmt && (isTypedMirtek || isTypedNeo)) brandError = true;
+            // Ошибка, если ждем НЕО, а написали Миртек или СМТ
+            if (isItemNeo && (isTypedMirtek || isTypedSmt)) brandError = true;
+
+            if (brandError) {
+                 return { error: true, msg: `Несоответствие модели! По номеру ожидается: ${expectedItem.displayName}, а указано: ${record.model || 'пусто'}. ` };
+            }
+
+            return { error: false, msg: '' };
         }
 
         // ===== Firebase =====
@@ -816,11 +852,9 @@
                 let isError = false;
                 if (item.serial && item.serial !== '-') {
                     let isDuplicate = serialCounts[item.serial] > 1;
+                    let mismatchCheck = checkModelSerialMismatch(item, allItems);
                     
-                    let queue = findMatchingItemQueue(item, allItems);
-                    let noMatch = !queue || queue.length === 0;
-                    
-                    if (isDuplicate || noMatch) isError = true;
+                    if (isDuplicate || mismatchCheck.error) isError = true;
                 }
 
                 if (item.model && item.totalPower && item.totalPower !== '-') {
@@ -1023,13 +1057,15 @@
                 const existing = dbList.some(item => item.installer === newName);
                 if (existing && !confirm(`Имя "${newName}" уже существует. Объединить записи?`)) return;
                 
-                const updates = {};
+                const batchUpdates = {};
                 dbList.forEach(item => {
-                    if (item.installer === installer) updates[item.id] = { ...item, installer: newName };
+                    if (item.installer === installer) {
+                        batchUpdates[`${item.id}/installer`] = newName;
+                    }
                 });
                 
-                Promise.all(Object.entries(updates).map(([id, data]) => dbRef.child(id).update(data)))
-                    .then(() => alert(`Имя монтажника изменено на "${newName}" для ${Object.keys(updates).length} записей.`))
+                dbRef.update(batchUpdates)
+                    .then(() => alert(`Имя монтажника изменено на "${newName}" для ${Object.keys(batchUpdates).length} записей.`))
                     .catch(err => alert('Ошибка: ' + err.message));
             }
         }
@@ -1123,7 +1159,7 @@
             document.getElementById('addItemTitle').innerText = 'Добавить позицию';
             document.getElementById('i_itemId').value = '';
             document.getElementById('i_displayName').value = '';
-            document.getElementById('i_searchModel').value = '';
+            document.getElementById('i_searchModel').value = ''; // Оставлено скрытым в UI чтобы старые данные не слетели при редактировании
             document.getElementById('i_searchSerial').value = '';
             document.getElementById('i_initialWarehouse').value = '0';
             document.getElementById('i_itemColor').value = '#2563eb';
@@ -1159,11 +1195,11 @@
             const itemColor = document.getElementById('i_itemColor').value;
             
             if (!batchId || !displayName) return alert('Заполните название и выберите партию!');
-            if (!searchModel && !searchSerial) return alert('Заполните хотя бы один префикс для поиска (по названию или номеру)!');
+            if (!searchSerial) return alert('Заполните префикс для поиска по заводскому номеру (первые цифры номера)!');
             
             let data = {
                 displayName: displayName,
-                searchModel: searchModel,
+                searchModel: searchModel, // Сохраняем просто для совместимости со старыми записями
                 searchSerial: searchSerial,
                 warehouse: initialWarehouse,
                 itemColor: itemColor
@@ -1261,7 +1297,7 @@
             let processedItemsInstalled = {};
             allItems.forEach(item => processedItemsInstalled[item.itemId] = 0);
 
-            // РАСПРЕДЕЛЕНИЕ УСТАНОВОК (УНИВЕРСАЛЬНЫЙ АЛГОРИТМ ПО ПРЕФИКСАМ)
+            // РАСПРЕДЕЛЕНИЕ УСТАНОВОК 
             dbList.forEach(record => {
                 let queue = findMatchingItemQueue(record, allItems);
                 if (queue && queue.length > 0) {
@@ -1453,15 +1489,14 @@
                 
                 if (item.serial && item.serial !== '-') {
                     let isDuplicate = serialCounts[item.serial] > 1;
-                    let queue = findMatchingItemQueue(item, allItems);
-                    let noMatch = !queue || queue.length === 0;
+                    let mismatchCheck = checkModelSerialMismatch(item, allItems);
                     
                     if (isDuplicate) {
                         errorTitle += "Дубликат серийного номера! ";
                         serialError = true;
                     }
-                    if (noMatch) {
-                        errorTitle += `Неизвестный префикс номера или модели (не найдено в справочнике партий)! `;
+                    if (mismatchCheck.error) {
+                        errorTitle += mismatchCheck.msg;
                         serialError = true;
                     }
                 }
@@ -1642,23 +1677,20 @@
 
         function saveInlineEdit() {
             const rows = document.querySelectorAll('tr.editing-row');
-            let updates = {};
+            let batchUpdates = {};
             
             rows.forEach(tr => {
                 let id = tr.querySelector('.row-checkbox').value;
                 let inputs = tr.querySelectorAll('.inline-edit-input');
-                let updateData = {};
                 
-                inputs.forEach(inp => { updateData[inp.getAttribute('data-field')] = inp.value.trim(); });
-                
-                let item = dbList.find(i => i.id === id);
-                if(item) updates[id] = { ...item, ...updateData };
+                inputs.forEach(inp => { 
+                    batchUpdates[`${id}/${inp.getAttribute('data-field')}`] = inp.value.trim();
+                });
             });
 
-            if (Object.keys(updates).length === 0) return cancelInlineEdit();
+            if (Object.keys(batchUpdates).length === 0) return cancelInlineEdit();
             
-            Promise.all(Object.entries(updates).map(([id, data]) => dbRef.child(id).update(data)))
-            .then(() => {
+            dbRef.update(batchUpdates).then(() => {
                 isInlineEditing = false;
                 document.getElementById('btnInlineEdit').style.display = 'inline-block';
                 document.getElementById('btnInlineSave').style.display = 'none';
@@ -1841,14 +1873,27 @@
                 return true;
             });
 
-            Promise.all(unique.map(rec => {
+            let updates = {};
+            unique.forEach(rec => {
                 rec.timestamp = Date.now();
-                return dbRef.push(rec).then(() => imported++);
-            })).then(() => {
-                status.innerHTML = `Успешно загружено: ${imported} из ${extracted.length} (пропущено дубликатов: ${extracted.length - unique.length})`;
-                status.style.color = 'var(--success-color)';
-                setTimeout(() => closeModal('importModal'), 3000);
+                let newKey = dbRef.push().key; 
+                updates[newKey] = rec;
+                imported++;
             });
+
+            if (Object.keys(updates).length > 0) {
+                dbRef.update(updates).then(() => {
+                    status.innerHTML = `Успешно загружено: ${imported} из ${extracted.length} (пропущено дубликатов: ${extracted.length - unique.length})`;
+                    status.style.color = 'var(--success-color)';
+                    setTimeout(() => closeModal('importModal'), 3000);
+                }).catch(err => {
+                    status.innerHTML = 'Ошибка: ' + err.message;
+                    status.style.color = 'var(--danger-color)';
+                });
+            } else {
+                status.innerHTML = 'Нет новых уникальных записей для загрузки.';
+                setTimeout(() => closeModal('importModal'), 2000);
+            }
         }
 
         function loadFileContent(e) {
@@ -1886,7 +1931,7 @@
 
                     status.innerHTML = `Обработка ${json.length} строк... Пожалуйста, подождите.`;
 
-                    let promises = [];
+                    let updates = {};
                     let updated = 0;
                     let added = 0;
 
@@ -1930,25 +1975,33 @@
                         }
 
                         if (targetId) {
-                            promises.push(dbRef.child(targetId).update(updateData));
+                            for (let key in updateData) {
+                                updates[`${targetId}/${key}`] = updateData[key];
+                            }
                             updated++;
                         } else {
                             if(Object.keys(updateData).some(k => updateData[k] && updateData[k] !== '' && k !== 'passport')) {
                                 updateData.timestamp = Date.now();
-                                promises.push(dbRef.push(updateData));
+                                let newKey = dbRef.push().key; 
+                                updates[newKey] = updateData;
                                 added++;
                             }
                         }
                     });
 
-                    Promise.all(promises).then(() => {
-                        status.innerHTML = `Успешно! Обновлено: ${updated}, Добавлено новых: ${added}.`;
-                        status.style.color = 'var(--success-color)';
-                        setTimeout(() => closeModal('importExcelModal'), 4000);
-                    }).catch(err => {
-                        status.innerHTML = 'Ошибка загрузки в базу: ' + err.message;
-                        status.style.color = 'var(--danger-color)';
-                    });
+                    if (Object.keys(updates).length > 0) {
+                        dbRef.update(updates).then(() => {
+                            status.innerHTML = `Успешно! Обновлено: ${updated}, Добавлено новых: ${added}.`;
+                            status.style.color = 'var(--success-color)';
+                            setTimeout(() => closeModal('importExcelModal'), 4000);
+                        }).catch(err => {
+                            status.innerHTML = 'Ошибка загрузки в базу: ' + err.message;
+                            status.style.color = 'var(--danger-color)';
+                        });
+                    } else {
+                        status.innerHTML = 'Нет изменений для загрузки.';
+                        setTimeout(() => closeModal('importExcelModal'), 2000);
+                    }
 
                 } catch (error) {
                     status.innerHTML = 'Ошибка обработки файла: Убедитесь что загружаете правильный Excel файл.';

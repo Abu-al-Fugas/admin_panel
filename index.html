@@ -877,30 +877,28 @@
                 }
             });
 
+            // Настройка счетчика "Сегодня" (строго по дате)
             const now = new Date();
-            const todayStart = new Date(now); todayStart.setHours(7, 0, 0, 0);
-            const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999);
+            const d = String(now.getDate()).padStart(2, '0');
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const y = now.getFullYear();
+            const todayStr = `${d}.${m}.${y}`;
+            
             let todayCount = 0;
             
             dbList.forEach(item => {
                 if (!item.date) return;
-                const parts = item.date.split(',');
-                if (parts.length < 2) return;
-                const datePart = parts[0].trim().split('.');
-                if (datePart.length !== 3) return;
-                const timePart = parts[1].trim().split(':');
-                if (timePart.length !== 2) return;
-                const day = parseInt(datePart[0]), month = parseInt(datePart[1])-1, year = parseInt(datePart[2]);
-                const hour = parseInt(timePart[0]), minute = parseInt(timePart[1]);
-                const itemDate = new Date(year, month, day, hour, minute);
-                if (itemDate >= todayStart && itemDate <= todayEnd) todayCount++;
+                const recordDateStr = item.date.split(',')[0].trim();
+                if (recordDateStr === todayStr) {
+                    todayCount++;
+                }
             });
 
             grid.innerHTML = `
                 <div class="stat-card"><div class="stat-number">${total}</div><div class="stat-label">Всего установок</div></div>
                 <div class="stat-card" style="cursor: pointer; transition: transform 0.2s;" onclick="showTodayDetails()" title="Нажмите для просмотра деталей">
                     <div class="stat-number">${todayCount}</div>
-                    <div class="stat-label" style="font-weight: 600;">Сегодня (с 7:00)</div>
+                    <div class="stat-label" style="font-weight: 600;">Сегодня</div>
                 </div>
                 <div class="stat-card"><div class="stat-number">${Object.keys(installersCount).length}</div><div class="stat-label">Монтажников</div></div>
                 <div class="stat-card"><div class="stat-number" style="color: var(--danger-color);">${errorCount}</div><div class="stat-label">Ошибок в таблице</div></div>
@@ -909,23 +907,19 @@
 
         function showTodayDetails() {
             const now = new Date();
-            const todayStart = new Date(now); todayStart.setHours(7, 0, 0, 0);
-            const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999);
+            const d = String(now.getDate()).padStart(2, '0');
+            const m = String(now.getMonth() + 1).padStart(2, '0');
+            const y = now.getFullYear();
+            const todayStr = `${d}.${m}.${y}`;
             
             let todayRecords = dbList.filter(item => {
                 if (!item.date) return false;
-                const parts = item.date.split(',');
-                if (parts.length < 2) return false;
-                const datePart = parts[0].trim().split('.');
-                const timePart = parts[1].trim().split(':');
-                if (datePart.length !== 3 || timePart.length !== 2) return false;
-                
-                const itemDate = new Date(parseInt(datePart[2]), parseInt(datePart[1])-1, parseInt(datePart[0]), parseInt(timePart[0]), parseInt(timePart[1]));
-                return itemDate >= todayStart && itemDate <= todayEnd;
+                const recordDateStr = item.date.split(',')[0].trim();
+                return recordDateStr === todayStr;
             });
 
             if (todayRecords.length === 0) {
-                document.getElementById('detailsTitle').innerText = 'Установки сегодня (с 7:00)';
+                document.getElementById('detailsTitle').innerText = 'Установки сегодня';
                 document.getElementById('detailsBody').innerHTML = '<p style="text-align:center; padding: 20px;">За сегодня установок нет.</p>';
                 openModal('detailsModal');
                 return;
@@ -942,9 +936,10 @@
             Object.keys(byInstaller).sort().forEach(inst => {
                 html += `<li style="background:#f8fafc; padding:8px 12px; margin-top:12px; font-weight:600; border-radius:6px; color:var(--accent-cyan); border-left: 3px solid var(--accent-cyan);">${inst} (${byInstaller[inst].length} шт.)</li>`;
                 byInstaller[inst].forEach(r => {
+                    let displayTime = r.date && r.date.includes(',') ? r.date.split(',')[1].trim() : '';
                     html += `<li style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border-color);">
                         <span><b>${r.model || '-'}</b><br><span style="font-size:0.75rem; color:var(--text-muted);">№ ${r.serial || '-'}</span></span>
-                        <span style="font-size:0.8rem; color:var(--text-secondary); text-align:right;">${r.objectName || 'Без объекта'}<br><b style="color:var(--text-primary);">${r.date ? r.date.split(',')[1].trim() : ''}</b></span>
+                        <span style="font-size:0.8rem; color:var(--text-secondary); text-align:right;">${r.objectName || 'Без объекта'}<br><b style="color:var(--text-primary);">${displayTime}</b></span>
                     </li>`;
                 });
             });
@@ -1159,7 +1154,7 @@
             document.getElementById('addItemTitle').innerText = 'Добавить позицию';
             document.getElementById('i_itemId').value = '';
             document.getElementById('i_displayName').value = '';
-            document.getElementById('i_searchModel').value = ''; // Оставлено скрытым в UI чтобы старые данные не слетели при редактировании
+            document.getElementById('i_searchModel').value = ''; 
             document.getElementById('i_searchSerial').value = '';
             document.getElementById('i_initialWarehouse').value = '0';
             document.getElementById('i_itemColor').value = '#2563eb';
@@ -2020,6 +2015,7 @@
             let data = [headers];
             
             dbList.forEach(item => {
+                // Возвращаем старую логику выгрузки только даты (без времени)
                 let exportDate = item.date ? item.date.split(',')[0].trim() : '';
                 
                 let row = [

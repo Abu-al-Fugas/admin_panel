@@ -1032,9 +1032,10 @@
             }).forEach(d => {
                 html += `<li style="background:#f1f5f9; padding:6px 12px; margin-top:12px; font-weight:600; border-radius:6px; color:var(--accent-blue);">${d}</li>`;
                 byDay[d].forEach(r => {
+                    let displayTime = r.date && r.date.includes(',') ? r.date.split(',')[1].trim() : '';
                     html += `<li style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border-color);">
                         <span>${r.model || '-'} (${r.serial || '-'})</span>
-                        <span style="font-size:0.8rem; color:var(--text-secondary);">${r.objectName || ''}</span>
+                        <span style="font-size:0.8rem; color:var(--text-secondary); text-align:right;">${r.objectName || ''}<br><b style="color:var(--text-primary);">${displayTime}</b></span>
                     </li>`;
                 });
             });
@@ -1936,7 +1937,8 @@
                         'Модель': 'model', '№': 'serial', 'Дата поверки': 'verificationDate', 'Направл.': 'newGasDirection',
                         'SIM': 'simCardNumber', 'Ст. модель': 'oldMeterModel', 'Ст. №': 'oldMeterSerial',
                         'Ст. показ.': 'oldMeterReadings', 'Пломба': 'controllerSeal', 'Расположение': 'uirgLocation',
-                        'ЛС': 'ls', 'GPRS': 'gps', 'Комментарий': 'comment', 'Дата': 'date'
+                        'ЛС': 'ls', 'GPRS': 'gps', 'Комментарий': 'comment'
+                        // Столбцы "Дата" и "Время" обрабатываются вручную ниже
                     };
 
                     const serialMap = {};
@@ -1952,10 +1954,26 @@
 
                         let updateData = { passport: isPassport };
                         
+                        // Обработка стандартных полей
                         for (let excelKey in excelMap) {
                             if (row.hasOwnProperty(excelKey)) {
                                 let val = String(row[excelKey]).trim();
                                 updateData[excelMap[excelKey]] = val === '-' ? '' : val;
+                            }
+                        }
+
+                        // ИСПРАВЛЕНИЕ: Ручная обработка даты и времени с объединением
+                        if (row.hasOwnProperty('Дата')) {
+                            let valD = String(row['Дата']).trim();
+                            let valT = row.hasOwnProperty('Время') ? String(row['Время']).trim() : '';
+                            
+                            if (valD === '-') valD = '';
+                            if (valT === '-') valT = '';
+                            
+                            if (valD) {
+                                updateData['date'] = valT ? `${valD}, ${valT}` : valD;
+                            } else {
+                                updateData['date'] = '';
                             }
                         }
 
@@ -2010,13 +2028,21 @@
         function exportToExcel() {
             if (dbList.length === 0) return alert("Нет данных");
             
-            const headers = ['ID_Системы', 'Монтажник', 'Объект', 'Город/район', 'Адрес', 'Потребитель', 'Должность', 'Мощн.', 'Паспорт', 'Модель', '№', 'Дата поверки', 'Направл.', 'SIM', 'Ст. модель', 'Ст. №', 'Ст. показ.', 'Пломба', 'Расположение', 'ЛС', 'GPRS', 'Комментарий', 'Дата'];
+            // ИСПРАВЛЕНИЕ: Добавлен новый столбец "Время"
+            const headers = ['ID_Системы', 'Монтажник', 'Объект', 'Город/район', 'Адрес', 'Потребитель', 'Должность', 'Мощн.', 'Паспорт', 'Модель', '№', 'Дата поверки', 'Направл.', 'SIM', 'Ст. модель', 'Ст. №', 'Ст. показ.', 'Пломба', 'Расположение', 'ЛС', 'GPRS', 'Комментарий', 'Дата', 'Время'];
             
             let data = [headers];
             
             dbList.forEach(item => {
-                // Возвращаем старую логику выгрузки только даты (без времени)
-                let exportDate = item.date ? item.date.split(',')[0].trim() : '';
+                let datePart = '';
+                let timePart = '';
+                
+                // Разбиваем склеенную дату на две отдельные ячейки
+                if (item.date) {
+                    let parts = item.date.split(',');
+                    datePart = parts[0] ? parts[0].trim() : '';
+                    timePart = parts[1] ? parts[1].trim() : '';
+                }
                 
                 let row = [
                     item.id,
@@ -2041,7 +2067,8 @@
                     item.ls || '',
                     item.gps || '',
                     item.comment || '',
-                    exportDate
+                    datePart,
+                    timePart
                 ];
                 data.push(row);
             });

@@ -152,8 +152,7 @@
         .btn-warning:hover { background-color: #d97706; }
         .btn-outline { background-color: transparent; border-color: var(--border-color); color: var(--text-primary); }
         .btn-outline:hover { background-color: #f1f5f9; border-color: #cbd5e1; }
-        .btn-frozen { background-color: #e2e8f0; color: var(--text-muted); }
-        .btn-frozen:hover { background-color: #cbd5e1; }
+        .btn-active-filter { background-color: #fee2e2; border-color: var(--danger-color); color: #991b1b; font-weight: 600; }
         
         .btn-small { padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; }
 
@@ -199,7 +198,7 @@
         table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 0.8rem; table-layout: auto;}
         
         th, td { 
-            padding: 12px 21px; 
+            padding: 10px 18px; 
             text-align: left; 
             border-bottom: 1px solid var(--border-color); 
             vertical-align: middle; 
@@ -233,13 +232,28 @@
         tr.error-row:hover td { background-color: #fca5a5 !important; }
         td.error-cell { color: #991b1b !important; font-weight: bold !important; }
 
+        .row-error-badge {
+            display: inline-block;
+            background: #ef4444;
+            color: #ffffff;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-top: 4px;
+            max-width: 320px;
+            white-space: normal;
+            line-height: 1.2;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+
         .text-right { text-align: right; }
         .text-center { text-align: center; }
         .text-success { color: var(--success-color) !important; font-weight: bold; }
         
         th.resizable { position: sticky; }
         .resizer {
-            position: absolute; right: 0; top: 0; width: 8px; height: 100%;
+            position: absolute right 0; top 0; width 8px; height 100%;
             cursor: col-resize; user-select: none; z-index: 12; border-right: 1px solid transparent;
         }
         .resizer:hover, .resizer.resizing {
@@ -264,11 +278,28 @@
         .editing-row td { background-color: #eff6ff !important; }
         
         .inline-edit-input { 
-            width: calc(100% + 24px); margin: -6px -12px; padding: 6px 10px; font-size: 0.85rem; 
+            width: 100%; padding: 6px 8px; font-size: 0.85rem; 
             border: 2px solid var(--accent-cyan); border-radius: 6px; box-sizing: border-box;
             background: #ffffff; color: var(--text-primary); font-family: 'Inter', sans-serif; outline: none;
         }
         .inline-edit-input:focus { background-color: #f0f9ff; }
+
+        .inline-input-group {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            width: 100%;
+        }
+        .inline-input-group select {
+            width: 26px;
+            padding: 0;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 4px;
+            height: 31px;
+            border: 1px solid var(--border-color);
+            background: #fff;
+        }
 
         .modal-overlay { 
             display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -280,9 +311,15 @@
             background: var(--bg-secondary); padding: 24px; border-radius: var(--radius); width: 95%; max-width: 900px; 
             box-shadow: 0 20px 50px rgba(0,0,0,0.15); max-height: 90vh; display: flex; flex-direction: column; animation: modalFade 0.2s ease;
         }
+        .modal-fullscreen {
+            width: 98vw !important;
+            max-width: 98vw !important;
+            height: 95vh !important;
+            max-height: 95vh !important;
+        }
         @keyframes modalFade { from { opacity: 0; transform: scale(0.98) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
         
-        .modal-header { display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 1.1rem; font-weight: 600; font-family: 'Orbitron', sans-serif; color: var(--text-primary);}
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 16px; font-size: 1.1rem; font-weight: 600; font-family: 'Orbitron', sans-serif; color: var(--text-primary); align-items: center;}
         .modal-close { background: none; border: none; font-size: 1.8rem; cursor: pointer; color: var(--text-muted); line-height: 1; padding: 0; transition: color 0.2s;}
         .modal-close:hover { color: var(--text-primary); }
         .modal-body { overflow-y: auto; padding-right: 8px; flex: 1; }
@@ -315,8 +352,28 @@
         .batch-content { border-top: none; }
         .batch-content .table-responsive { box-shadow: none; border: none; border-radius: 0; max-height: none;}
 
-        .frozen-row td { background-color: #f8fafc; color: var(--text-muted); }
-        .frozen-row b { color: var(--text-secondary) !important; }
+        .scan-stat-box { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+        .scan-stat-item { flex: 1; min-width: 140px; padding: 12px; border-radius: 8px; background: #f8fafc; border: 1px solid var(--border-color); text-align: center; }
+        .scan-stat-num { font-size: 1.4rem; font-weight: 700; font-family: 'Orbitron', sans-serif; }
+        .scan-item { padding: 12px 16px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #cbd5e1; background: #f8fafc; display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+        .scan-item.critical { border-left-color: var(--danger-color); background: #fff5f5; }
+        .scan-item.warn { border-left-color: var(--warning-color); background: #fffbeb; }
+        .scan-item.info { border-left-color: var(--accent-cyan); background: #f0f9ff; }
+        .scan-badge { padding: 3px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; text-transform: uppercase; }
+        .scan-badge.critical { background: #fee2e2; color: #991b1b; }
+        .scan-badge.warn { background: #fef3c7; color: #92400e; }
+        .scan-badge.info { background: #e0f2fe; color: #0369a1; }
+
+        .table-info-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 12px;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            background: #f8fafc;
+            border-bottom: 1px solid var(--border-color);
+        }
 
         @media (max-width: 768px) {
             header { position: static; flex-direction: column; padding: 12px; gap: 12px; }
@@ -330,6 +387,7 @@
             #fullTableControls > div { justify-content: center !important; flex: none !important; width: 100%; }
             table { font-size: 0.75rem; }
             .batch-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+            .modal-fullscreen { width: 100vw !important; max-width: 100vw !important; height: 100vh !important; max-height: 100vh !important; border-radius: 0 !important; }
         }
     </style>
 </head>
@@ -376,8 +434,22 @@
 
         <section id="fullTable" class="tab-content">
             <div id="fullTableControls" class="controls">
-                <div style="flex: 1; display:flex; align-items:center;">
-                    <input type="text" id="searchInput" placeholder="Поиск по таблице..." oninput="filterTable()" style="max-width: 250px; width: 100%;">
+                <div style="flex: 1.3; display:flex; align-items:center; gap: 8px; flex-wrap: wrap;">
+                    <input type="text" id="searchInput" placeholder="Поиск по всей базе..." oninput="filterTableDebounced()" style="max-width: 200px; width: 100%;">
+                    
+                    <div style="display:inline-flex; align-items:center; gap:4px; font-size:0.85rem; font-weight:600; color:var(--text-secondary);">
+                        <span>Строк:</span>
+                        <select id="rowsLimitSelect" onchange="changeRowsLimit(this.value)" style="padding: 4px 8px; font-size:0.85rem; cursor:pointer;">
+                            <option value="100" selected>100</option>
+                            <option value="200">200</option>
+                            <option value="500">500</option>
+                            <option value="all">Все</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-outline btn-small" id="btnFilterIssues" onclick="toggleOnlyIssuesFilter()" title="Показать только записи с ошибками или пустыми полями">⚠️ Только с ошибками</button>
+                    <button class="btn btn-warning btn-small" onclick="openScanModal()" title="Быстрое сканирование базы">🔍 Быстрый скан</button>
+                    <button class="btn btn-danger btn-small" onclick="findExactDuplicatesAndPrompt()" title="Удалить полные копии записей (без учета времени отчета)">🗑 Удалить дубли</button>
                 </div>
                 
                 <div id="inlineEditControls" style="display:flex; justify-content:center; gap:8px; flex: 1;">
@@ -386,7 +458,7 @@
                     <button class="btn btn-outline" id="btnInlineCancel" onclick="cancelInlineEdit()" style="display:none;">Отмена</button>
                 </div>
 
-                <div style="display:flex; justify-content:flex-end; gap:8px; flex: 1; flex-wrap: wrap;">
+                <div style="display:flex; justify-content:flex-end; gap:8px; flex: 1.2; flex-wrap: wrap;">
                     <button class="btn btn-primary" onclick="openImportModal()">Импорт текста</button>
                     <button class="btn btn-success" onclick="openAddRecordModal()">Добавить запись</button>
                     <button class="btn btn-warning" onclick="openExcelImportModal()">Импорт из Excel</button>
@@ -395,6 +467,7 @@
             </div>
 
             <div class="table-responsive" id="fullTableWrapper">
+                <div class="table-info-bar" id="tableInfoBar">Показано: 0 записей</div>
                 <table id="dataTable">
                     <thead>
                         <tr>
@@ -433,13 +506,54 @@
             <div class="controls" style="margin-bottom: 16px; display: flex; justify-content: flex-end; padding: 12px 16px; background: var(--bg-secondary); border-radius: var(--radius); box-shadow: var(--shadow-glow); border: 1px solid var(--glass-border);">
                 <button class="btn btn-primary" onclick="openAddBatchModal()">+ Добавить партию</button>
             </div>
-            <div id="inventoryBatchesContainer">
-                <!-- Сюда будут рендериться партии -->
-            </div>
+            <div id="inventoryBatchesContainer"></div>
         </section>
     </main>
 
-    <!-- Модалки для партий и позиций -->
+    <!-- Модальное окно подтверждения удаления точных дубликатов -->
+    <div class="modal-overlay" id="exactDuplicatesModal">
+        <div class="modal" style="max-width: 650px;">
+            <div class="modal-header">
+                <span>Удаление полных дубликатов</span>
+                <button class="modal-close" onclick="closeModal('exactDuplicatesModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="exactDuplicatesBody"></div>
+            <div class="modal-footer">
+                <button class="btn btn-outline" onclick="closeModal('exactDuplicatesModal')">Отмена</button>
+                <button class="btn btn-danger" id="btnConfirmDeleteDuplicates" onclick="executeDeleteDuplicates()">Подтвердить и удалить</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Полноэкранное модальное окно сканирования -->
+    <div class="modal-overlay" id="scanModal">
+        <div class="modal modal-fullscreen">
+            <div class="modal-header">
+                <span>⚡ Быстрый скан базы (Ошибки, пустые поля, аномалии)</span>
+                <button class="modal-close" onclick="closeModal('scanModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="scan-stat-box" id="scanStatBox"></div>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; gap:8px; flex-wrap:wrap;">
+                    <div style="display:flex; gap:6px;">
+                        <button class="btn btn-outline btn-small" id="scanFilterAll" onclick="renderScanResults('all')">Все</button>
+                        <button class="btn btn-outline btn-small" id="scanFilterCrit" onclick="renderScanResults('critical')">Критические</button>
+                        <button class="btn btn-outline btn-small" id="scanFilterWarn" onclick="renderScanResults('warn')">Предупреждения</button>
+                    </div>
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-danger btn-small" onclick="applyScanFilterToTable()">Показать найденное в таблице</button>
+                        <button class="btn btn-outline btn-small" onclick="runScan()">Пересканировать</button>
+                    </div>
+                </div>
+                <div id="scanResultsList"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="closeModal('scanModal')">Закрыть</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модалки партий -->
     <div class="modal-overlay" id="addBatchModal">
         <div class="modal" style="max-width: 400px;">
             <div class="modal-header"><span>Новая партия</span><button class="modal-close" onclick="closeModal('addBatchModal')">&times;</button></div>
@@ -474,7 +588,6 @@
                         <input type="text" id="i_searchSerial" placeholder="Только цифры в начале номера">
                     </div>
                     <div class="form-group" style="display:none;">
-                        <!-- Скрытое поле, чтобы не потерять старые данные, но оно больше не нужно для логики -->
                         <input type="text" id="i_searchModel">
                     </div>
                     <div class="form-group">
@@ -496,7 +609,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно для настройки плана -->
     <div class="modal-overlay" id="plannedModal">
         <div class="modal" style="max-width: 400px;">
             <div class="modal-header"><span id="plannedModalTitle">План установок</span><button class="modal-close" onclick="closeModal('plannedModal')">&times;</button></div>
@@ -512,7 +624,6 @@
         </div>
     </div>
 
-    <!-- Модальное окно для импорта из EXCEL -->
     <div class="modal-overlay" id="importExcelModal">
         <div class="modal" style="max-width: 500px;">
             <div class="modal-header"><span>Импорт и обновление из Excel</span><button class="modal-close" onclick="closeModal('importExcelModal')">&times;</button></div>
@@ -532,7 +643,7 @@
         </div>
     </div>
 
-    <!-- Модалка редактирования/добавления -->
+    <!-- Модалка редактирования -->
     <div class="modal-overlay" id="editModal">
         <div class="modal">
             <div class="modal-header"><span id="editTitle">Редактирование записи</span><button class="modal-close" onclick="closeModal('editModal')">&times;</button></div>
@@ -618,6 +729,11 @@
                                                 <option value="СМТ- Комплекс G25">СМТ- Комплекс G25</option>
                                                 <option value="СМТ- Комплекс G40">СМТ- Комплекс G40</option>
                                                 <option value="СМТ- Комплекс G65">СМТ- Комплекс G65</option>
+                                                <option value="МИРТЕК-51-РУ 4">МИРТЕК-51-РУ 4</option>
+                                                <option value="МИРТЕК-51-РУ 6">МИРТЕК-51-РУ 6</option>
+                                                <option value="МИРТЕК-51-РУ 10">МИРТЕК-51-РУ 10</option>
+                                                <option value="НЕО G16">НЕО G16</option>
+                                                <option value="НЕО G25">НЕО G25</option>
                                             </select>
                                         </div>
                                     </div>
@@ -690,7 +806,6 @@
     </div>
 
     <script>
-        // ===== ВАЛИДАЦИОННЫЕ КОНСТАНТЫ =====
         const MAX_POWER_MAP = {
             'G4': 7,
             'G6': 11,
@@ -701,7 +816,38 @@
             'G65': 110
         };
 
-        // Вспомогательная функция для сборки всех позиций инвентаря с сортировкой по order
+        const NEW_METER_MODELS = [
+            "СМТ-Смарт G4",
+            "СМТ-Смарт G6",
+            "СМТ-Смарт G10",
+            "СМТ- Комплекс G16",
+            "СМТ- Комплекс G25",
+            "СМТ- Комплекс G40",
+            "СМТ- Комплекс G65",
+            "МИРТЕК-51-РУ 4",
+            "МИРТЕК-51-РУ 6",
+            "МИРТЕК-51-РУ 10",
+            "НЕО G16",
+            "НЕО G25"
+        ];
+
+        const OLD_METER_MODELS = [
+            "СГМН-1 G6",
+            "СГМН-1М1-G6",
+            "СГМН-МТ1-G6",
+            "СГБ G4-1",
+            "NOVATOR G6 РЛ",
+            "BK-G6",
+            "BK-G10",
+            "BK-G16",
+            "BK-G25",
+            "BK-G40",
+            "BK-G65"
+        ];
+
+        const DIRECTION_OPTIONS = ["сверху-вниз", "снизу-вверх", "справа-налево", "слева-направо"];
+        const LOCATION_OPTIONS = ["Улица", "Котельная", "Под навесом", "В помещении"];
+
         function getAllItemsFromInventory() {
             let allItems = [];
             if (!inventoryV2Data) return allItems;
@@ -724,7 +870,6 @@
             return allItems;
         }
 
-        // Вспомогательная функция сопоставления записи с очередью позиций ИСКЛЮЧИТЕЛЬНО по префиксу серийного номера
         function findMatchingItemQueue(record, allItems) {
             if (!record.serial || record.serial === '-') return null;
             let rSerial = String(record.serial).replace(/\D/g, '');
@@ -734,11 +879,9 @@
 
             allItems.forEach(item => {
                 let sSerial = (item.searchSerial || '').replace(/\D/g, '');
-                if (!sSerial) return; // Пропускаем позиции, у которых не задан префикс серийника
+                if (!sSerial) return;
 
-                // Если серийник записи начинается с префикса из справочника
                 if (rSerial.startsWith(sSerial)) {
-                    // Ищем самое длинное совпадение (чтобы избежать конфликтов, например "152" и "15226")
                     if (sSerial.length > maxLen) {
                         maxLen = sSerial.length;
                         bestMatch = item;
@@ -746,37 +889,32 @@
                 }
             });
 
-            return bestMatch ? [bestMatch] : null; // Возвращаем в массиве для обратной совместимости с другим кодом
+            return bestMatch ? [bestMatch] : null;
         }
 
-        // Строгая функция проверки на несоответствие модели и серийного номера
         function checkModelSerialMismatch(record, allItems) {
             if (!record.serial || record.serial === '-') return { error: false, msg: '' };
             
             let matchedItems = findMatchingItemQueue(record, allItems);
             
-            // Если по префиксу серийника вообще ничего не найдено в справочнике
             if (!matchedItems || matchedItems.length === 0) {
-                return { error: true, msg: 'Неизвестный префикс серийного номера (не найдено в справочнике партий)! ' };
+                return { error: true, msg: 'Неизвестный префикс серийного номера (не найдено в партиях)!' };
             }
 
-            let expectedItem = matchedItems[0]; // Точная позиция из справочника (модель + партия)
+            let expectedItem = matchedItems[0];
             
             let rModel = (record.model || '').toLowerCase().replace(/c/g, 'с').replace(/m/g, 'м').replace(/t/g, 'т').replace(/[\s\-]/g, '');
             let iModelNorm = (expectedItem.displayName || '').toLowerCase().replace(/c/g, 'с').replace(/m/g, 'м').replace(/t/g, 'т').replace(/[\s\-]/g, '');
 
-            // 1. Проверка РАЗМЕРА (G4, G6, G10 и т.д.)
             let rSizeMatch = rModel.match(/g\d{1,3}/);
             let rSize = rSizeMatch ? rSizeMatch[0] : '';
             let iSizeMatch = iModelNorm.match(/g\d{1,3}/);
             let iSize = iSizeMatch ? iSizeMatch[0] : '';
 
-            // Если размер указан и там, и там, и он не совпадает -> Ошибка
             if (iSize && rSize && rSize !== iSize) {
-                return { error: true, msg: `Несоответствие размера! По номеру ожидается: ${expectedItem.displayName}, а указано: ${record.model || 'пусто'}. ` };
+                return { error: true, msg: `Несоответствие типоразмера! Ожидается: ${expectedItem.displayName}, указано: ${record.model || 'пусто'}` };
             }
 
-            // 2. Проверка БРЕНДА (Кросс-чек Миртек / СМТ / НЕО)
             let isItemMirtek = iModelNorm.includes('миртек');
             let isItemSmt = iModelNorm.includes('смт') || iModelNorm.includes('смарт') || iModelNorm.includes('комплекс');
             let isItemNeo = iModelNorm.includes('нео');
@@ -786,21 +924,17 @@
             let isTypedNeo = rModel.includes('нео');
 
             let brandError = false;
-            // Ошибка, если ждем Миртек, а написали СМТ или НЕО
             if (isItemMirtek && (isTypedSmt || isTypedNeo)) brandError = true;
-            // Ошибка, если ждем СМТ, а написали Миртек или НЕО
             if (isItemSmt && (isTypedMirtek || isTypedNeo)) brandError = true;
-            // Ошибка, если ждем НЕО, а написали Миртек или СМТ
             if (isItemNeo && (isTypedMirtek || isTypedSmt)) brandError = true;
 
             if (brandError) {
-                 return { error: true, msg: `Несоответствие модели! По номеру ожидается: ${expectedItem.displayName}, а указано: ${record.model || 'пусто'}. ` };
+                 return { error: true, msg: `Несоответствие бренда! Ожидается: ${expectedItem.displayName}, указано: ${record.model || 'пусто'}` };
             }
 
             return { error: false, msg: '' };
         }
 
-        // ===== Firebase =====
         const firebaseConfig = {
             apiKey: "AIzaSyCofoBIWqUX_P8pQUIKKbitEG2GTbXT7Ak",
             authDomain: "botstm100.firebaseapp.com",
@@ -821,54 +955,448 @@
         let sortDirection = {};
         let isInlineEditing = false; 
 
-        // ===== UI Основы =====
+        let currentRowsLimit = 100;
+        let searchDebounceTimer = null;
+        let onlyIssuesFilterActive = false;
+        let scanIssuesCache = [];
+
+        // Переменная для хранения ID дубликатов перед удалением
+        let pendingDuplicatesToDelete = [];
+
+        // Сравнение всех значений объекта кроме даты/времени
+        function areRecordsIdenticalExceptDate(r1, r2) {
+            const fieldsToCompare = [
+                'installer', 'objectName', 'city', 'address', 'consumer',
+                'position', 'totalPower', 'passport', 'model', 'serial',
+                'verificationDate', 'newGasDirection', 'simCardNumber',
+                'oldMeterModel', 'oldMeterSerial', 'oldMeterReadings',
+                'controllerSeal', 'uirgLocation', 'ls', 'gps', 'comment'
+            ];
+
+            for (let f of fieldsToCompare) {
+                let v1 = (r1[f] !== undefined && r1[f] !== null) ? String(r1[f]).trim() : '';
+                let v2 = (r2[f] !== undefined && r2[f] !== null) ? String(r2[f]).trim() : '';
+                
+                if (f === 'passport') {
+                    v1 = (r1[f] === true || r1[f] === 'true') ? '1' : '0';
+                    v2 = (r2[f] === true || r2[f] === 'true') ? '1' : '0';
+                }
+
+                if (v1 !== v2) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // Поиск полных дубликатов и показ модального окна для подтверждения
+        function findExactDuplicatesAndPrompt() {
+            if (!Array.isArray(dbList) || dbList.length === 0) {
+                alert('База пуста.');
+                return;
+            }
+
+            const duplicates = [];
+            const visited = new Set();
+            const groups = [];
+
+            for (let i = 0; i < dbList.length; i++) {
+                if (visited.has(dbList[i].id)) continue;
+
+                const currentGroup = [dbList[i]];
+                for (let j = i + 1; j < dbList.length; j++) {
+                    if (visited.has(dbList[j].id)) continue;
+
+                    if (areRecordsIdenticalExceptDate(dbList[i], dbList[j])) {
+                        currentGroup.push(dbList[j]);
+                        visited.add(dbList[j].id);
+                    }
+                }
+
+                if (currentGroup.length > 1) {
+                    // Первая запись остается как оригинал, остальные идут на удаление
+                    for (let k = 1; k < currentGroup.length; k++) {
+                        duplicates.push(currentGroup[k].id);
+                    }
+                    groups.push({
+                        original: currentGroup[0],
+                        totalCount: currentGroup.length,
+                        duplicatesCount: currentGroup.length - 1
+                    });
+                }
+            }
+
+            pendingDuplicatesToDelete = duplicates;
+
+            if (duplicates.length === 0) {
+                alert('Полных дубликатов не обнаружено. Все повторные серийники имеют различия в других полях.');
+                return;
+            }
+
+            const body = document.getElementById('exactDuplicatesBody');
+            let html = `
+                <p style="margin-bottom: 12px; font-size: 0.95rem; color: var(--text-primary);">
+                    Найдено полных дубликатов: <b style="color: var(--danger-color); font-size: 1.1rem;">${duplicates.length} шт.</b><br>
+                    <span style="font-size:0.85rem; color:var(--text-secondary);">
+                        Каждая из этих записей абсолютно совпадает с оригиналом по всем полям (исключая дату и время отправки отчета). Оригинальные записи будут сохранены, а копии удалены.
+                    </span>
+                </p>
+                <div style="max-height: 340px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; background: #f8fafc;">
+            `;
+
+            groups.forEach((g, idx) => {
+                const s = g.original.serial || 'без серийника';
+                const inst = g.original.installer || 'без монтажника';
+                const obj = g.original.objectName || 'без объекта';
+                const addr = g.original.address || '';
+                
+                html += `
+                    <div style="padding: 8px 12px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <b>${idx + 1}. Серийник: ${s}</b> (${g.original.model || '-'})<br>
+                            <span style="color:var(--text-secondary);">${obj} — ${addr}</span><br>
+                            <span style="font-size:0.75rem; color:var(--accent-cyan);">Монтажник: ${inst}</span>
+                        </div>
+                        <div style="text-align: right; white-space: nowrap;">
+                            <span style="background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 12px; font-weight: 700; font-size: 0.8rem;">
+                                Лишних копий: ${g.duplicatesCount} шт.
+                            </span>
+                        </div>
+                    </div>
+                `;
+            });
+
+            html += `</div>`;
+            body.innerHTML = html;
+            openModal('exactDuplicatesModal');
+        }
+
+        // Выполнение удаления после подтверждения пользователем
+        function executeDeleteDuplicates() {
+            if (!pendingDuplicatesToDelete || pendingDuplicatesToDelete.length === 0) {
+                closeModal('exactDuplicatesModal');
+                return;
+            }
+
+            const updates = {};
+            pendingDuplicatesToDelete.forEach(id => {
+                updates[id] = null; // удаление ключа из Firebase
+            });
+
+            const count = pendingDuplicatesToDelete.length;
+            const btn = document.getElementById('btnConfirmDeleteDuplicates');
+            btn.disabled = true;
+            btn.innerText = 'Удаление...';
+
+            dbRef.update(updates).then(() => {
+                btn.disabled = false;
+                btn.innerText = 'Подтвердить и удалить';
+                closeModal('exactDuplicatesModal');
+                pendingDuplicatesToDelete = [];
+                alert(`Успешно удалено полных дубликатов: ${count} шт.`);
+                renderAll();
+            }).catch(err => {
+                btn.disabled = false;
+                btn.innerText = 'Подтвердить и удалить';
+                alert('Ошибка при удалении: ' + err.message);
+            });
+        }
+
+        function localScan() {
+            const issues = [];
+            if (!Array.isArray(dbList) || dbList.length === 0) return issues;
+
+            function extractDateOnly(dateStr) {
+                if (!dateStr || typeof dateStr !== 'string') return 'без даты';
+                const commaIdx = dateStr.indexOf(',');
+                const rawDate = commaIdx !== -1 ? dateStr.slice(0, commaIdx) : dateStr;
+                return rawDate.trim() || 'без даты';
+            }
+
+            function getRecordIdentity(rec) {
+                const s = rec.serial ? String(rec.serial).trim() : '';
+                const inst = rec.installer ? String(rec.installer).trim() : 'Монтажник не указан';
+                const d = extractDateOnly(rec.date);
+
+                if (s && s !== '-') {
+                    return `Серийник ${s}, монтажник ${inst}, ${d}`;
+                }
+                const objAddr = [rec.objectName, rec.address].filter(Boolean).map(v => String(v).trim()).join(', ');
+                return `Без серийника, монтажник ${inst}, ${d}${objAddr ? ' (' + objAddr + ')' : ''}`;
+            }
+
+            const allItems = typeof getAllItemsFromInventory === 'function' ? getAllItemsFromInventory() : [];
+            const serialMap = new Map();
+            const simMap = new Map();
+            const dayInstallerMap = new Map();
+
+            for (let i = 0; i < dbList.length; i++) {
+                const rec = dbList[i];
+                if (!rec) continue;
+
+                const s = rec.serial != null ? String(rec.serial).trim() : '';
+                const sim = rec.simCardNumber != null ? String(rec.simCardNumber).trim() : '';
+                const inst = rec.installer != null ? String(rec.installer).trim() : '';
+                const model = rec.model != null ? String(rec.model).trim() : '';
+                const dayStr = extractDateOnly(rec.date);
+                const identity = getRecordIdentity(rec);
+                const itemSerials = (s && s !== '-') ? [s] : [];
+
+                if (s && s !== '-') {
+                    if (!serialMap.has(s)) serialMap.set(s, []);
+                    serialMap.get(s).push({ installer: inst || 'Не указан', date: dayStr });
+                }
+
+                if (sim && sim !== '-') {
+                    if (!simMap.has(sim)) simMap.set(sim, []);
+                    simMap.get(sim).push({ serial: s, identity: identity });
+                }
+
+                if (inst && inst !== '-' && dayStr !== 'без даты') {
+                    const dayKey = inst + '|' + dayStr;
+                    if (!dayInstallerMap.has(dayKey)) {
+                        dayInstallerMap.set(dayKey, { installer: inst, day: dayStr, serials: [], count: 0 });
+                    }
+                    const stat = dayInstallerMap.get(dayKey);
+                    stat.count++;
+                    if (s && s !== '-') stat.serials.push(s);
+                }
+
+                const emptyFields = [];
+                if (!s || s === '-') emptyFields.push('серийный №');
+                if (!model || model === '-') emptyFields.push('модель');
+                if (!inst || inst === '-') emptyFields.push('монтажник');
+                if (!rec.objectName || rec.objectName.trim() === '' || rec.objectName === '-') emptyFields.push('объект');
+                if (!rec.address || rec.address.trim() === '' || rec.address === '-') emptyFields.push('адрес');
+                if (!rec.consumer || rec.consumer.trim() === '' || rec.consumer === '-') emptyFields.push('потребитель');
+
+                if (emptyFields.length > 0) {
+                    issues.push({
+                        severity: 'warn',
+                        title: 'Пустые поля',
+                        message: `${identity} — не заполнены: ${emptyFields.join(', ')}`,
+                        serials: itemSerials
+                    });
+                }
+
+                if (typeof checkModelSerialMismatch === 'function') {
+                    const mismatch = checkModelSerialMismatch(rec, allItems);
+                    if (mismatch && mismatch.error) {
+                        issues.push({
+                            severity: 'critical',
+                            title: 'Несоответствие модели и серийника',
+                            message: `${identity} — ${mismatch.msg ? mismatch.msg.trim() : 'Несоответствие справочнику'}`,
+                            serials: itemSerials
+                        });
+                    }
+                }
+
+                if (model && rec.totalPower != null && rec.totalPower !== '-') {
+                    const upModel = model.toUpperCase();
+                    const gIdx = upModel.indexOf('G');
+                    if (gIdx !== -1) {
+                        let endIdx = gIdx + 1;
+                        while (endIdx < upModel.length && upModel.charCodeAt(endIdx) >= 48 && upModel.charCodeAt(endIdx) <= 57) {
+                            endIdx++;
+                        }
+                        const gSize = upModel.slice(gIdx, endIdx);
+                        const maxAllowed = MAX_POWER_MAP[gSize];
+
+                        if (maxAllowed !== undefined) {
+                            const rawPower = String(rec.totalPower).replace(',', '.').replace(/[^\d.-]/g, '');
+                            const powerNum = parseFloat(rawPower);
+                            if (!isNaN(powerNum) && powerNum > maxAllowed) {
+                                issues.push({
+                                    severity: 'critical',
+                                    title: 'Превышение мощности',
+                                    message: `${identity} — мощность ${powerNum} м³/ч превышает допустимый предел ${maxAllowed} м³/ч для ${gSize}`,
+                                    serials: itemSerials
+                                });
+                            }
+                        }
+                    }
+                }
+            }
+
+            for (const [serialVal, entries] of serialMap.entries()) {
+                if (entries.length > 1) {
+                    const details = entries.map(e => `[${e.installer}, ${e.date}]`).join(', ');
+                    issues.push({
+                        severity: 'critical',
+                        title: 'Дубликат серийного номера',
+                        message: `Серийник ${serialVal} встречается ${entries.length} раз(а): ${details} — номер должен быть строго уникален`,
+                        serials: [serialVal]
+                    });
+                }
+            }
+
+            for (const [simVal, entries] of simMap.entries()) {
+                if (entries.length > 1) {
+                    const relatedSerials = [];
+                    const detailsList = [];
+                    for (let k = 0; k < entries.length; k++) {
+                        detailsList.push(entries[k].identity);
+                        if (entries[k].serial && entries[k].serial !== '-') {
+                            relatedSerials.push(entries[k].serial);
+                        }
+                    }
+                    issues.push({
+                        severity: 'critical',
+                        title: 'Дубликат SIM-карты',
+                        message: `SIM-карта ${simVal} указана ${entries.length} раз(а) в записях: ${detailsList.join(' | ')}`,
+                        serials: relatedSerials
+                    });
+                }
+            }
+
+            for (const stat of dayInstallerMap.values()) {
+                if (stat.count > 15) {
+                    issues.push({
+                        severity: 'warn',
+                        title: 'Превышение лимита установок за день',
+                        message: `Монтажник ${stat.installer}, ${stat.day} — зафиксировано ${stat.count} установок (норма до 15 в день)`,
+                        serials: stat.serials
+                    });
+                }
+            }
+
+            return issues;
+        }
+
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
         function openModal(id) { document.getElementById(id).classList.add('active'); }
 
         document.querySelectorAll('.modal-overlay').forEach(el => {
             el.addEventListener('click', (e) => {
                 if (el.id === 'importExcelModal' && e.target === el) closeModal(el.id);
-                if (el.id === 'editModal' || el.id === 'addBatchModal' || el.id === 'addItemModal' || el.id === 'plannedModal') return; 
+                if (el.id === 'editModal' || el.id === 'addBatchModal' || el.id === 'addItemModal' || el.id === 'plannedModal' || el.id === 'scanModal' || el.id === 'exactDuplicatesModal') return; 
                 if (e.target === el) closeModal(el.id);
             });
         });
 
-        // ===== Статистика =====
+        function openScanModal() {
+            openModal('scanModal');
+            runScan();
+        }
+
+        function runScan() {
+            scanIssuesCache = localScan();
+            renderScanStats();
+            renderScanResults('all');
+        }
+
+        function renderScanStats() {
+            const critCount = scanIssuesCache.filter(i => i.severity === 'critical').length;
+            const warnCount = scanIssuesCache.filter(i => i.severity === 'warn').length;
+            const totalCount = scanIssuesCache.length;
+
+            const box = document.getElementById('scanStatBox');
+            box.innerHTML = `
+                <div class="scan-stat-item">
+                    <div class="scan-stat-num" style="color:var(--text-primary);">${totalCount}</div>
+                    <div style="font-size:0.8rem; color:var(--text-secondary); margin-top:2px;">Всего проблем</div>
+                </div>
+                <div class="scan-stat-item" style="border-color:#fca5a5; background:#fff5f5;">
+                    <div class="scan-stat-num" style="color:var(--danger-color);">${critCount}</div>
+                    <div style="font-size:0.8rem; color:#991b1b; margin-top:2px;">Критических</div>
+                </div>
+                <div class="scan-stat-item" style="border-color:#fde68a; background:#fffbeb;">
+                    <div class="scan-stat-num" style="color:var(--warning-color);">${warnCount}</div>
+                    <div style="font-size:0.8rem; color:#92400e; margin-top:2px;">Предупреждений / Пустых</div>
+                </div>
+            `;
+        }
+
+        function renderScanResults(filterSeverity = 'all') {
+            const list = document.getElementById('scanResultsList');
+            const items = filterSeverity === 'all' 
+                ? scanIssuesCache 
+                : scanIssuesCache.filter(i => i.severity === filterSeverity);
+
+            ['scanFilterAll', 'scanFilterCrit', 'scanFilterWarn'].forEach(id => {
+                const b = document.getElementById(id);
+                if (b) b.classList.remove('btn-primary');
+            });
+            if (filterSeverity === 'all') document.getElementById('scanFilterAll')?.classList.add('btn-primary');
+            if (filterSeverity === 'critical') document.getElementById('scanFilterCrit')?.classList.add('btn-primary');
+            if (filterSeverity === 'warn') document.getElementById('scanFilterWarn')?.classList.add('btn-primary');
+
+            if (items.length === 0) {
+                list.innerHTML = `<div style="text-align:center; padding:40px; color:var(--text-muted); font-size:1rem;">✅ Проблем по выбранному фильтру не обнаружено!</div>`;
+                return;
+            }
+
+            let html = '';
+            items.forEach((item) => {
+                const sBadge = item.severity === 'critical' ? 'Критично' : (item.severity === 'warn' ? 'Внимание' : 'Инфо');
+                const serialBtn = (item.serials && item.serials.length > 0)
+                    ? `<button class="btn btn-outline btn-small" style="white-space:nowrap;" onclick="filterTableBySerial('${item.serials[0]}')">Найти в таблице</button>`
+                    : '';
+
+                html += `
+                    <div class="scan-item ${item.severity}">
+                        <div style="flex:1;">
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px;">
+                                <span class="scan-badge ${item.severity}">${sBadge}</span>
+                                <b style="font-size:0.9rem; color:var(--text-primary);">${item.title}</b>
+                            </div>
+                            <div style="font-size:0.85rem; color:var(--text-secondary); line-height:1.4;">${item.message}</div>
+                        </div>
+                        <div>${serialBtn}</div>
+                    </div>
+                `;
+            });
+
+            list.innerHTML = html;
+        }
+
+        function filterTableBySerial(serial) {
+            closeModal('scanModal');
+            const input = document.getElementById('searchInput');
+            if (input) {
+                input.value = serial;
+                onlyIssuesFilterActive = false;
+                updateOnlyIssuesButtonState();
+                renderFullTable();
+            }
+        }
+
+        function applyScanFilterToTable() {
+            closeModal('scanModal');
+            onlyIssuesFilterActive = true;
+            updateOnlyIssuesButtonState();
+            renderFullTable();
+        }
+
+        function toggleOnlyIssuesFilter() {
+            onlyIssuesFilterActive = !onlyIssuesFilterActive;
+            updateOnlyIssuesButtonState();
+            renderFullTable();
+        }
+
+        function updateOnlyIssuesButtonState() {
+            const btn = document.getElementById('btnFilterIssues');
+            if (!btn) return;
+            if (onlyIssuesFilterActive) {
+                btn.classList.add('btn-active-filter');
+                btn.innerText = '✕ Сбросить фильтр ошибок';
+            } else {
+                btn.classList.remove('btn-active-filter');
+                btn.innerText = '⚠️ Только с ошибками';
+            }
+        }
+
+        function changeRowsLimit(val) {
+            currentRowsLimit = val === 'all' ? 'all' : parseInt(val, 10);
+            renderFullTable();
+        }
+
         function renderStats() {
             const grid = document.getElementById('statsGrid');
             const total = dbList.length;
             
-            let errorCount = 0;
-            let serialCounts = {};
-            dbList.forEach(item => {
-                if (item.serial && item.serial !== '-') {
-                    serialCounts[item.serial] = (serialCounts[item.serial] || 0) + 1;
-                }
-            });
-
-            let allItems = getAllItemsFromInventory();
-
-            dbList.forEach(item => {
-                let isError = false;
-                if (item.serial && item.serial !== '-') {
-                    let isDuplicate = serialCounts[item.serial] > 1;
-                    let mismatchCheck = checkModelSerialMismatch(item, allItems);
-                    
-                    if (isDuplicate || mismatchCheck.error) isError = true;
-                }
-
-                if (item.model && item.totalPower && item.totalPower !== '-') {
-                    let sizeMatch = item.model.match(/G\d{1,2}/i);
-                    let size = sizeMatch ? sizeMatch[0].toUpperCase() : null;
-                    if (size && MAX_POWER_MAP[size] !== undefined) {
-                        let pValStr = item.totalPower.replace(',', '.').replace(/[^\d.-]/g, '');
-                        let pVal = parseFloat(pValStr);
-                        if (!isNaN(pVal) && pVal > MAX_POWER_MAP[size]) isError = true;
-                    }
-                }
-                
-                if (isError) errorCount++;
-            });
+            let issues = localScan();
+            let errorCount = issues.length;
 
             const installersCount = {};
             dbList.forEach(i => { 
@@ -877,7 +1405,6 @@
                 }
             });
 
-            // Настройка счетчика "Сегодня" (строго по дате)
             const now = new Date();
             const d = String(now.getDate()).padStart(2, '0');
             const m = String(now.getMonth() + 1).padStart(2, '0');
@@ -901,7 +1428,10 @@
                     <div class="stat-label" style="font-weight: 600;">Сегодня</div>
                 </div>
                 <div class="stat-card"><div class="stat-number">${Object.keys(installersCount).length}</div><div class="stat-label">Монтажников</div></div>
-                <div class="stat-card"><div class="stat-number" style="color: var(--danger-color);">${errorCount}</div><div class="stat-label">Ошибок в таблице</div></div>
+                <div class="stat-card" style="cursor: pointer;" onclick="openScanModal()" title="Нажмите для открытия сканера">
+                    <div class="stat-number" style="color: var(--danger-color);">${errorCount}</div>
+                    <div class="stat-label">Ошибок и пустот</div>
+                </div>
             `;
         }
 
@@ -934,7 +1464,9 @@
 
             let html = '<ul style="list-style:none; padding:0; margin:0;">';
             Object.keys(byInstaller).sort().forEach(inst => {
-                html += `<li style="background:#f8fafc; padding:8px 12px; margin-top:12px; font-weight:600; border-radius:6px; color:var(--accent-cyan); border-left: 3px solid var(--accent-cyan);">${inst} (${byInstaller[inst].length} шт.)</li>`;
+                html += `<li style="background:#f8fafc; padding:8px 12px; margin-top:12px; font-weight:600; border-radius:6px; color:var(--accent-cyan); border-left: 3px solid var(--accent-cyan); display:flex; align-items:center; gap:8px;">
+                    <span>${inst}</span> <span style="background:rgba(2, 132, 199, 0.1); padding:2px 8px; border-radius:12px; font-size:0.85rem;">(${byInstaller[inst].length} шт.)</span>
+                </li>`;
                 byInstaller[inst].forEach(r => {
                     let displayTime = r.date && r.date.includes(',') ? r.date.split(',')[1].trim() : '';
                     html += `<li style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border-color);">
@@ -950,7 +1482,6 @@
             openModal('detailsModal');
         }
 
-        // ===== Сводка =====
         function renderSummary() {
             const tbody = document.getElementById('summaryTableBody');
             const filterMonth = document.getElementById('filterMonth').value;
@@ -1030,7 +1561,11 @@
                 }
                 return 0;
             }).forEach(d => {
-                html += `<li style="background:#f1f5f9; padding:6px 12px; margin-top:12px; font-weight:600; border-radius:6px; color:var(--accent-blue);">${d}</li>`;
+                let countForDay = byDay[d].length;
+                html += `<li style="background:#f1f5f9; padding:8px 12px; margin-top:12px; font-weight:600; border-radius:6px; color:var(--accent-blue); display:flex; align-items:center; gap:8px;">
+                    <span>${d}</span>
+                    <span style="background:rgba(37, 99, 235, 0.1); padding:2px 8px; border-radius:12px; font-size:0.85rem; font-weight:700;">(${countForDay} шт.)</span>
+                </li>`;
                 byDay[d].forEach(r => {
                     let displayTime = r.date && r.date.includes(',') ? r.date.split(',')[1].trim() : '';
                     html += `<li style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border-color);">
@@ -1041,8 +1576,8 @@
             });
             html += '</ul>';
 
-            document.getElementById('detailsTitle').innerText = 'Установки: ' + installerName;
-            document.getElementById('detailsBody').innerHTML = html || '<p>Нет записей</p>';
+            document.getElementById('detailsTitle').innerText = `Установки: ${installerName} (Всего: ${records.length} шт.)`;
+            document.getElementById('detailsBody').innerHTML = html || '<p style="text-align:center; padding:20px;">Нет записей</p>';
             openModal('detailsModal');
         }
 
@@ -1065,8 +1600,6 @@
                     .catch(err => alert('Ошибка: ' + err.message));
             }
         }
-
-        // ===== ИНВЕНТАРЬ V2 (Партии, План) =====
 
         function toggleBatch(batchId) {
             const container = document.getElementById(`batch_${batchId}`);
@@ -1195,7 +1728,7 @@
             
             let data = {
                 displayName: displayName,
-                searchModel: searchModel, // Сохраняем просто для совместимости со старыми записями
+                searchModel: searchModel,
                 searchSerial: searchSerial,
                 warehouse: initialWarehouse,
                 itemColor: itemColor
@@ -1283,7 +1816,6 @@
             }
         }
 
-        // ===== ГЛАВНАЯ ЛОГИКА РАСПРЕДЕЛЕНИЯ ПАРТИЙ =====
         function renderInventory() {
             const container = document.getElementById('inventoryBatchesContainer');
             container.innerHTML = '';
@@ -1293,7 +1825,6 @@
             let processedItemsInstalled = {};
             allItems.forEach(item => processedItemsInstalled[item.itemId] = 0);
 
-            // РАСПРЕДЕЛЕНИЕ УСТАНОВОК 
             dbList.forEach(record => {
                 let queue = findMatchingItemQueue(record, allItems);
                 if (queue && queue.length > 0) {
@@ -1357,9 +1888,7 @@
                         }
 
                         html += `<tr>
-                            <td>
-                                <b>${itemData.displayName}</b>
-                            </td>
+                            <td><b>${itemData.displayName}</b></td>
                             <td class="text-center" style="font-size: 1.1rem; color: var(--text-primary); cursor: pointer;" title="Двойной клик для редактирования" ondblclick="editInventoryCellV2(this, '${batchId}', '${itemId}', 'warehouse', ${effectiveInstalled})">
                                 <span>${current_warehouse}</span>
                             </td>
@@ -1389,7 +1918,6 @@
             });
         }
 
-        // ===== Таблица и Паспорта =====
         function updatePassport(id, isChecked) {
             dbRef.child(id).update({ passport: isChecked }).catch(e => alert('Ошибка сохранения статуса паспорта: ' + e.message));
         }
@@ -1401,22 +1929,9 @@
             }
         }
 
-        function filterTable() {
-            const input = document.getElementById("searchInput");
-            if (!input) return;
-            const filter = input.value.toLowerCase();
-            const tbody = document.getElementById("fullTableBody");
-            const trs = tbody.getElementsByTagName("tr");
-
-            for (let i = 0; i < trs.length; i++) {
-                if(trs[i].classList.contains('editing-row')) continue; 
-                let rowText = trs[i].textContent.toLowerCase();
-                if (rowText.includes(filter)) {
-                    trs[i].style.display = "";
-                } else {
-                    trs[i].style.display = "none";
-                }
-            }
+        function filterTableDebounced() {
+            clearTimeout(searchDebounceTimer);
+            searchDebounceTimer = setTimeout(renderFullTable, 180);
         }
 
         function applyColumnWidths() {
@@ -1449,6 +1964,59 @@
             }
         }
 
+        function generateInlineFieldHtml(field, val) {
+            const escapedVal = val.replace(/"/g, '&quot;');
+            
+            if (field === 'model') {
+                let optionsHtml = NEW_METER_MODELS.map(m => `<option value="${m}">${m}</option>`).join('');
+                return `
+                    <div class="inline-input-group">
+                        <input type="text" class="inline-edit-input" data-field="model" value="${escapedVal}" onkeydown="handleInlineEditKeydown(event)">
+                        <select onchange="this.previousElementSibling.value = this.value; this.selectedIndex = 0;" title="Выбрать модель">
+                            <option value="" disabled selected>▼</option>
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                `;
+            } else if (field === 'oldMeterModel') {
+                let optionsHtml = OLD_METER_MODELS.map(m => `<option value="${m}">${m}</option>`).join('');
+                return `
+                    <div class="inline-input-group">
+                        <input type="text" class="inline-edit-input" data-field="oldMeterModel" value="${escapedVal}" onkeydown="handleInlineEditKeydown(event)">
+                        <select onchange="this.previousElementSibling.value = this.value; this.selectedIndex = 0;" title="Выбрать модель">
+                            <option value="" disabled selected>▼</option>
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                `;
+            } else if (field === 'newGasDirection') {
+                let optionsHtml = DIRECTION_OPTIONS.map(d => `<option value="${d}">${d}</option>`).join('');
+                return `
+                    <div class="inline-input-group">
+                        <input type="text" class="inline-edit-input" data-field="newGasDirection" value="${escapedVal}" onkeydown="handleInlineEditKeydown(event)">
+                        <select onchange="this.previousElementSibling.value = this.value; this.selectedIndex = 0;" title="Выбрать направление">
+                            <option value="" disabled selected>▼</option>
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                `;
+            } else if (field === 'uirgLocation') {
+                let optionsHtml = LOCATION_OPTIONS.map(l => `<option value="${l}">${l}</option>`).join('');
+                return `
+                    <div class="inline-input-group">
+                        <input type="text" class="inline-edit-input" data-field="uirgLocation" value="${escapedVal}" onkeydown="handleInlineEditKeydown(event)">
+                        <select onchange="this.previousElementSibling.value = this.value; this.selectedIndex = 0;" title="Выбрать расположение">
+                            <option value="" disabled selected>▼</option>
+                            ${optionsHtml}
+                        </select>
+                    </div>
+                `;
+            }
+
+            return `<input type="text" class="inline-edit-input" data-field="${field}" value="${escapedVal}" onkeydown="handleInlineEditKeydown(event)">`;
+        }
+
+        // РЕНДЕР ТАБЛИЦЫ: Поиск по всей базе + лимит строк
         function renderFullTable() {
             if (isInlineEditing) return; 
             const tbody = document.getElementById('fullTableBody');
@@ -1475,26 +2043,101 @@
                 });
             }
 
-            let html = '';
-            dbList.forEach(item => {
-                
+            const searchInput = document.getElementById("searchInput");
+            const filterKeyword = searchInput ? searchInput.value.toLowerCase().trim() : '';
+
+            // Фильтрация ПО ВСЕЙ БАЗЕ ДАННЫХ
+            let filteredList = dbList.filter(item => {
                 let isError = false;
                 let serialError = false;
                 let powerError = false;
-                let errorTitle = "";
+                let emptyError = false;
+
+                if (item.serial && item.serial !== '-') {
+                    let isDuplicate = serialCounts[item.serial] > 1;
+                    let mismatchCheck = checkModelSerialMismatch(item, allItems);
+                    if (isDuplicate || mismatchCheck.error) serialError = true;
+                } else {
+                    emptyError = true;
+                }
+
+                if (!item.installer || item.installer.trim() === '' || item.installer === '-') emptyError = true;
+                if (!item.model || item.model.trim() === '' || item.model === '-') emptyError = true;
+                if (!item.objectName || item.objectName.trim() === '' || item.objectName === '-') emptyError = true;
+
+                if (item.model && item.totalPower && item.totalPower !== '-') {
+                    let sizeMatch = item.model.match(/G\d{1,2}/i);
+                    let size = sizeMatch ? sizeMatch[0].toUpperCase() : null;
+                    if (size && MAX_POWER_MAP[size] !== undefined) {
+                        let pValStr = item.totalPower.replace(',', '.').replace(/[^\d.-]/g, '');
+                        let pVal = parseFloat(pValStr);
+                        if (!isNaN(pVal) && pVal > MAX_POWER_MAP[size]) powerError = true;
+                    }
+                }
+
+                isError = serialError || powerError || emptyError;
+
+                if (onlyIssuesFilterActive && !isError) return false;
+
+                if (filterKeyword) {
+                    let rowFullText = [
+                        item.installer, item.objectName, item.city, item.address,
+                        item.consumer, item.position, item.totalPower, item.model,
+                        item.serial, item.verificationDate, item.newGasDirection,
+                        item.simCardNumber, item.oldMeterModel, item.oldMeterSerial,
+                        item.oldMeterReadings, item.controllerSeal, item.uirgLocation,
+                        item.ls, item.gps, item.comment, item.date
+                    ].filter(Boolean).join(' ').toLowerCase();
+
+                    if (!rowFullText.includes(filterKeyword)) return false;
+                }
+
+                return true;
+            });
+
+            // Применение лимита
+            const totalFound = filteredList.length;
+            let displayList = filteredList;
+            if (currentRowsLimit !== 'all') {
+                displayList = filteredList.slice(0, currentRowsLimit);
+            }
+
+            let html = '';
+            displayList.forEach(item => {
+                let isError = false;
+                let serialError = false;
+                let powerError = false;
+                let emptyError = false;
+                let errorMessages = [];
                 
                 if (item.serial && item.serial !== '-') {
                     let isDuplicate = serialCounts[item.serial] > 1;
                     let mismatchCheck = checkModelSerialMismatch(item, allItems);
                     
                     if (isDuplicate) {
-                        errorTitle += "Дубликат серийного номера! ";
+                        errorMessages.push("Дубликат №!");
                         serialError = true;
                     }
                     if (mismatchCheck.error) {
-                        errorTitle += mismatchCheck.msg;
+                        errorMessages.push(mismatchCheck.msg);
                         serialError = true;
                     }
+                } else {
+                    emptyError = true;
+                    errorMessages.push("Нет серийного №!");
+                }
+
+                if (!item.installer || item.installer.trim() === '' || item.installer === '-') {
+                    emptyError = true;
+                    errorMessages.push("Нет монтажника!");
+                }
+                if (!item.model || item.model.trim() === '' || item.model === '-') {
+                    emptyError = true;
+                    errorMessages.push("Нет модели!");
+                }
+                if (!item.objectName || item.objectName.trim() === '' || item.objectName === '-') {
+                    emptyError = true;
+                    errorMessages.push("Нет объекта!");
                 }
 
                 if (item.model && item.totalPower && item.totalPower !== '-') {
@@ -1505,23 +2148,30 @@
                         let pVal = parseFloat(pValStr);
                         if (!isNaN(pVal) && pVal > MAX_POWER_MAP[size]) {
                             powerError = true;
-                            errorTitle += `Превышена макс. мощность для ${size} (макс. ${MAX_POWER_MAP[size]} м³/ч, указано ${pVal})! `;
+                            errorMessages.push(`Превыш. мощн. ${size} (${pVal}>${MAX_POWER_MAP[size]})`);
                         }
                     }
                 }
 
-                isError = serialError || powerError;
+                isError = serialError || powerError || emptyError;
                 let rowClass = isError ? 'error-row' : '';
-                let serialClass = serialError ? 'error-cell' : '';
+                let serialClass = (serialError || (!item.serial || item.serial === '-')) ? 'error-cell' : '';
                 let powerClass = powerError ? 'error-cell' : '';
 
                 let isChecked = checkedIds.has(item.id) ? 'checked' : '';
                 let modelColor = itemColors[item.id] || 'var(--accent-blue)';
 
-                html += `<tr class="${rowClass}" title="${errorTitle}" ondblclick="enableRowEdit(this, '${item.id}', event)">
+                let visibleErrorBadge = isError 
+                    ? `<div class="row-error-badge">⚠️ ${errorMessages.join(' | ')}</div>` 
+                    : '';
+
+                html += `<tr class="${rowClass}" title="${errorMessages.join('; ')}" ondblclick="enableRowEdit(this, '${item.id}', event)">
                     <td class="text-center"><input type="checkbox" class="row-checkbox" value="${item.id}" ${isChecked}></td>
                     <td data-field="installer"><b>${item.installer || '-'}</b></td>
-                    <td data-field="objectName">${item.objectName || '-'}</td>
+                    <td data-field="objectName">
+                        <div><b>${item.objectName || '-'}</b></div>
+                        ${visibleErrorBadge}
+                    </td>
                     <td data-field="city">${item.city || '-'}</td>
                     <td data-field="address" title="${item.address || '-'}">${item.address || '-'}</td>
                     <td data-field="consumer">${item.consumer || '-'}</td>
@@ -1548,7 +2198,8 @@
                     </td>
                 </tr>`;
             });
-            if (html === '') html = '<tr><td colspan="24" style="text-align:center; padding:24px; color:var(--text-muted);">Нет записей</td></tr>';
+
+            if (html === '') html = '<tr><td colspan="24" style="text-align:center; padding:24px; color:var(--text-muted);">Ничего не найдено</td></tr>';
             
             tbody.innerHTML = html;
             
@@ -1556,7 +2207,12 @@
             if (mainCheckbox) mainCheckbox.checked = selectAllState;
             
             applyColumnWidths();
-            filterTable(); 
+
+            const infoBar = document.getElementById('tableInfoBar');
+            if (infoBar) {
+                let limitLabel = currentRowsLimit === 'all' ? 'Все' : currentRowsLimit;
+                infoBar.innerText = `Найдено по всей базе: ${totalFound} шт. (Отображается на экране: ${displayList.length} | Лимит: ${limitLabel} | Всего в базе: ${dbList.length})`;
+            }
 
             const savedSortCol = localStorage.getItem('botstm_sortCol');
             const savedSortType = localStorage.getItem('botstm_sortType');
@@ -1587,14 +2243,13 @@
             fields.forEach((td, index) => {
                 let field = td.getAttribute('data-field');
                 let val = td.innerText === '-' ? '' : td.innerText;
-                
                 let w = widths[index];
                 
                 td.style.width = w + 'px';
                 td.style.minWidth = w + 'px';
                 td.style.maxWidth = w + 'px';
                 
-                td.innerHTML = `<input type="text" class="inline-edit-input" data-field="${field}" value="${val.replace(/"/g, '&quot;')}" onkeydown="handleInlineEditKeydown(event)">`;
+                td.innerHTML = generateInlineFieldHtml(field, val);
             });
             
             const editBtn = tr.querySelector('.edit-single-btn');
@@ -1614,7 +2269,6 @@
             }
         }
 
-        // ===== Групповое редактирование =====
         function toggleAllCheckboxes() {
             const isChecked = document.getElementById('selectAllCheckbox').checked;
             document.querySelectorAll('.row-checkbox').forEach(cb => cb.checked = isChecked);
@@ -1626,7 +2280,6 @@
 
             if (!isInlineEditing) {
                 let rowsToEdit = Array.from(checkboxes).map(cb => cb.closest('tr'));
-                
                 let measurements = rowsToEdit.map(tr => {
                     return Array.from(tr.querySelectorAll('td[data-field]')).map(td => td.getBoundingClientRect().width);
                 });
@@ -1640,14 +2293,13 @@
                     fields.forEach((td, index) => {
                         let field = td.getAttribute('data-field');
                         let val = td.innerText === '-' ? '' : td.innerText;
-                        
                         let w = widths[index];
                         
                         td.style.width = w + 'px';
                         td.style.minWidth = w + 'px';
                         td.style.maxWidth = w + 'px';
                         
-                        td.innerHTML = `<input type="text" class="inline-edit-input" data-field="${field}" value="${val.replace(/"/g, '&quot;')}" onkeydown="handleInlineEditKeydown(event)">`;
+                        td.innerHTML = generateInlineFieldHtml(field, val);
                     });
                     
                     const editBtn = tr.querySelector('.edit-single-btn');
@@ -1697,7 +2349,6 @@
             });
         }
 
-        // ===== Форма записи =====
         function editRecord(id) {
             if(isInlineEditing) return alert('Завершите групповую правку.');
             const item = dbList.find(i => i.id === id);
@@ -1744,7 +2395,6 @@
             }
         }
 
-        // ===== Сортировка =====
         function sortTable(n, type = 'string', forceDir = null) {
             if(isInlineEditing) return alert('Сортировка недоступна во время редактирования.');
             
@@ -1796,7 +2446,6 @@
             rows.forEach(row => tbody.appendChild(row));
         }
 
-        // ===== Импорт текста =====
         function splitIntoRecords(text) {
             const lines = text.split('\n');
             const records = [];
@@ -1900,8 +2549,6 @@
         }
         function openImportModal() { document.getElementById('importTextArea').value = ''; document.getElementById('importStatus').innerHTML = ''; openModal('importModal'); }
 
-
-        // ===== ИМПОРТ ИЗ EXCEL =====
         function openExcelImportModal() {
             document.getElementById('importExcelFileInput').value = '';
             document.getElementById('excelImportStatus').innerHTML = '';
@@ -1938,7 +2585,6 @@
                         'SIM': 'simCardNumber', 'Ст. модель': 'oldMeterModel', 'Ст. №': 'oldMeterSerial',
                         'Ст. показ.': 'oldMeterReadings', 'Пломба': 'controllerSeal', 'Расположение': 'uirgLocation',
                         'ЛС': 'ls', 'GPRS': 'gps', 'Комментарий': 'comment'
-                        // Столбцы "Дата" и "Время" обрабатываются вручную ниже
                     };
 
                     const serialMap = {};
@@ -1954,7 +2600,6 @@
 
                         let updateData = { passport: isPassport };
                         
-                        // Обработка стандартных полей
                         for (let excelKey in excelMap) {
                             if (row.hasOwnProperty(excelKey)) {
                                 let val = String(row[excelKey]).trim();
@@ -1962,7 +2607,6 @@
                             }
                         }
 
-                        // ИСПРАВЛЕНИЕ: Ручная обработка даты и времени с объединением
                         if (row.hasOwnProperty('Дата')) {
                             let valD = String(row['Дата']).trim();
                             let valT = row.hasOwnProperty('Время') ? String(row['Время']).trim() : '';
@@ -2024,20 +2668,16 @@
             reader.readAsArrayBuffer(file);
         }
 
-        // ===== ЭКСПОРТ В EXCEL =====
         function exportToExcel() {
             if (dbList.length === 0) return alert("Нет данных");
             
-            // ИСПРАВЛЕНИЕ: Добавлен новый столбец "Время"
             const headers = ['ID_Системы', 'Монтажник', 'Объект', 'Город/район', 'Адрес', 'Потребитель', 'Должность', 'Мощн.', 'Паспорт', 'Модель', '№', 'Дата поверки', 'Направл.', 'SIM', 'Ст. модель', 'Ст. №', 'Ст. показ.', 'Пломба', 'Расположение', 'ЛС', 'GPRS', 'Комментарий', 'Дата', 'Время'];
-            
             let data = [headers];
             
             dbList.forEach(item => {
                 let datePart = '';
                 let timePart = '';
                 
-                // Разбиваем склеенную дату на две отдельные ячейки
                 if (item.date) {
                     let parts = item.date.split(',');
                     datePart = parts[0] ? parts[0].trim() : '';
@@ -2082,7 +2722,6 @@
             XLSX.writeFile(wb, `Otchet_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
-        // ===== Инициализация изменения ширины столбцов =====
         function initResizers() {
             const resizableCols = document.querySelectorAll('th.resizable');
             resizableCols.forEach(col => {
@@ -2132,7 +2771,6 @@
             });
         }
 
-        // ===== БЕЗОПАСНАЯ МИГРАЦИЯ ДАННЫХ ПРИ ПЕРВОМ ЗАПУСКЕ =====
         invV2Ref.on('value', snap => {
             if (!snap.exists()) {
                 database.ref('bot_inventory').once('value', oldSnap => {
@@ -2178,7 +2816,6 @@
             }
         });
 
-        // ===== Firebase Listeners =====
         database.ref('.info/connected').on('value', snap => {
             const dot = document.getElementById('connDot'), text = document.getElementById('connText');
             if (snap.val()) { dot.classList.add('online'); text.innerText = 'В сети'; text.style.color = 'var(--success-color)'; }
@@ -2200,7 +2837,6 @@
             renderInventory(); 
         }
 
-        // Табы
         document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => {
             if(isInlineEditing) return alert('Завершите групповую правку!');
             document.querySelectorAll('.tab-btn, .tab-content').forEach(e => e.classList.remove('active'));

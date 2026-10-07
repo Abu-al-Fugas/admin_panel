@@ -153,6 +153,7 @@
         .btn-outline { background-color: transparent; border-color: var(--border-color); color: var(--text-primary); }
         .btn-outline:hover { background-color: #f1f5f9; border-color: #cbd5e1; }
         .btn-active-filter { background-color: #fee2e2; border-color: var(--danger-color); color: #991b1b; font-weight: 600; }
+        .btn-active-anomaly { background-color: #fef3c7; border-color: var(--warning-color); color: #92400e; font-weight: 600; }
         
         .btn-small { padding: 4px 10px; font-size: 0.75rem; border-radius: 6px; }
 
@@ -228,9 +229,12 @@
         tr:hover td { background-color: #f8fafc; }
         tr:last-child td { border-bottom: none; }
         
-        /* Заливка всей строки красным цветом убрана по требованию */
         td.error-cell { color: #991b1b !important; font-weight: bold !important; background-color: #fee2e2 !important; border-radius: 4px; }
+        td.anomaly-cell { color: #92400e !important; font-weight: bold !important; background-color: #fef3c7 !important; border-radius: 4px; }
 
+        /* Разрешаем перенос строк в ячейке объекта, если там есть бейдж ошибки */
+        td[data-field="objectName"] { white-space: normal; min-width: 200px; }
+        
         .row-error-badge {
             display: inline-block;
             background: #ef4444;
@@ -240,7 +244,21 @@
             padding: 2px 6px;
             border-radius: 4px;
             margin-top: 4px;
-            max-width: 320px;
+            max-width: 100%;
+            white-space: normal;
+            line-height: 1.2;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+        }
+        .row-anomaly-badge {
+            display: inline-block;
+            background: #f59e0b;
+            color: #ffffff;
+            font-size: 0.72rem;
+            font-weight: 600;
+            padding: 2px 6px;
+            border-radius: 4px;
+            margin-top: 4px;
+            max-width: 100%;
             white-space: normal;
             line-height: 1.2;
             box-shadow: 0 1px 3px rgba(0,0,0,0.15);
@@ -259,7 +277,7 @@
             background-color: rgba(2, 132, 199, 0.1); border-right: 2px solid var(--accent-cyan);
         }
         
-        td[data-field="objectName"], td[data-field="city"], td[data-field="address"], td[data-field="comment"] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        td[data-field="city"], td[data-field="address"], td[data-field="comment"] { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
         .row-checkbox, #selectAllCheckbox { cursor: pointer; width: 16px; height: 16px; margin: 0; accent-color: var(--accent-cyan); }
         
@@ -427,7 +445,8 @@
                         </select>
                     </div>
 
-                    <button class="btn btn-outline btn-small" id="btnFilterIssues" onclick="toggleOnlyIssuesFilter()" title="Показать только записи с ошибками или пустыми полями">⚠️ Только с ошибками</button>
+                    <button class="btn btn-outline btn-small" id="btnFilterIssues" onclick="toggleOnlyIssuesFilter()" title="Показать только записи с ошибками (красные)">⚠️ Только с ошибками</button>
+                    <button class="btn btn-outline btn-small" id="btnFilterAnomalies" onclick="toggleOnlyAnomaliesFilter()" title="Показать записи с пустыми или некорректными значениями">❓ Только аномалии</button>
                     
                     <div style="display:inline-flex; gap:6px;">
                         <button class="btn btn-danger btn-small" onclick="deleteSelectedRecords()" title="Удалить выбранные галочками строки">Удалить выбранные</button>
@@ -539,8 +558,12 @@
                         <input type="text" id="i_displayName">
                     </div>
                     <div class="form-group">
-                        <label>Префикс поиска по заводскому номеру (например: 56225)</label>
-                        <input type="text" id="i_searchSerial" placeholder="Только цифры в начале номера">
+                        <label>Префикс поиска №1 (например: 56225)</label>
+                        <input type="text" id="i_searchSerial" placeholder="Первые цифры номера">
+                    </div>
+                    <div class="form-group">
+                        <label>Префикс поиска №2 (дополнительный)</label>
+                        <input type="text" id="i_searchSerial2" placeholder="Опционально">
                     </div>
                     <div class="form-group" style="display:none;">
                         <input type="text" id="i_searchModel">
@@ -672,6 +695,10 @@
                             <div class="form-section">
                                 <h4>Новый счетчик</h4>
                                 <div class="form-grid">
+                                    <div class="form-group" style="display:flex; flex-direction:row; align-items:center; gap:8px;">
+                                        <input type="checkbox" id="e_passport" style="width: auto;">
+                                        <label for="e_passport" style="margin:0; font-weight:600;">Паспорт в наличии</label>
+                                    </div>
                                     <div class="form-group"><label>Модель</label>
                                         <div class="input-with-select">
                                             <input type="text" id="e_model">
@@ -761,47 +788,39 @@
     </div>
 
     <script>
+        // Безопасный вывод HTML
+        function escapeHTML(str) {
+            if (str === null || str === undefined) return '';
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
         const MAX_POWER_MAP = {
-            'G4': 7,
-            'G6': 11,
-            'G10': 18,
-            'G16': 28,
-            'G25': 45,
-            'G40': 72,
-            'G65': 110
+            'G4': 7, 'G6': 11, 'G10': 18, 'G16': 28, 'G25': 45, 'G40': 72, 'G65': 110
         };
 
         const NEW_METER_MODELS = [
-            "СМТ-Смарт G4",
-            "СМТ-Смарт G6",
-            "СМТ-Смарт G10",
-            "СМТ- Комплекс G16",
-            "СМТ- Комплекс G25",
-            "СМТ- Комплекс G40",
-            "СМТ- Комплекс G65",
-            "МИРТЕК-51-РУ 4",
-            "МИРТЕК-51-РУ 6",
-            "МИРТЕК-51-РУ 10",
-            "НЕО G16",
-            "НЕО G25"
+            "СМТ-Смарт G4", "СМТ-Смарт G6", "СМТ-Смарт G10", "СМТ- Комплекс G16",
+            "СМТ- Комплекс G25", "СМТ- Комплекс G40", "СМТ- Комплекс G65",
+            "МИРТЕК-51-РУ 4", "МИРТЕК-51-РУ 6", "МИРТЕК-51-РУ 10", "НЕО G16", "НЕО G25"
         ];
 
         const OLD_METER_MODELS = [
-            "СГМН-1 G6",
-            "СГМН-1М1-G6",
-            "СГМН-МТ1-G6",
-            "СГБ G4-1",
-            "NOVATOR G6 РЛ",
-            "BK-G6",
-            "BK-G10",
-            "BK-G16",
-            "BK-G25",
-            "BK-G40",
-            "BK-G65"
+            "СГМН-1 G6", "СГМН-1М1-G6", "СГМН-МТ1-G6", "СГБ G4-1", "NOVATOR G6 РЛ",
+            "BK-G6", "BK-G10", "BK-G16", "BK-G25", "BK-G40", "BK-G65"
         ];
 
         const DIRECTION_OPTIONS = ["сверху-вниз", "снизу-вверх", "справа-налево", "слева-направо"];
         const LOCATION_OPTIONS = ["Улица", "Котельная", "Под навесом", "В помещении"];
+
+        const COL_MAP = {
+            1:'installer', 2:'objectName', 3:'city', 4:'address', 5:'consumer', 6:'position', 7:'totalPower', 8:'passport',
+            9:'model', 10:'serial', 11:'verificationDate', 12:'newGasDirection', 13:'simCardNumber', 14:'oldMeterModel',
+            15:'oldMeterSerial', 16:'oldMeterReadings', 17:'controllerSeal', 18:'uirgLocation', 19:'ls', 20:'gps', 21:'comment', 22:'date'
+        };
 
         function getAllItemsFromInventory() {
             let allItems = [];
@@ -817,6 +836,7 @@
                             batchName: bData.name,
                             displayName: iData.displayName,
                             searchSerial: iData.searchSerial !== undefined ? iData.searchSerial : (iData.sizeKey || ''),
+                            searchSerial2: iData.searchSerial2 || '',
                             itemColor: iData.itemColor || 'var(--accent-blue)'
                         });
                     });
@@ -833,14 +853,14 @@
             let maxLen = 0;
 
             allItems.forEach(item => {
-                let sSerial = (item.searchSerial || '').replace(/\D/g, '');
-                if (!sSerial) return;
-
-                if (rSerial.startsWith(sSerial)) {
-                    if (sSerial.length > maxLen) {
-                        maxLen = sSerial.length;
-                        bestMatch = item;
-                    }
+                let sSerial1 = String(item.searchSerial || '').replace(/[^A-Za-z0-9]/g, '');
+                let sSerial2 = String(item.searchSerial2 || '').replace(/[^A-Za-z0-9]/g, '');
+                
+                if (sSerial1 && rSerial.startsWith(sSerial1)) {
+                    if (sSerial1.length > maxLen) { maxLen = sSerial1.length; bestMatch = item; }
+                }
+                if (sSerial2 && rSerial.startsWith(sSerial2)) {
+                    if (sSerial2.length > maxLen) { maxLen = sSerial2.length; bestMatch = item; }
                 }
             });
 
@@ -849,15 +869,13 @@
 
         function checkModelSerialMismatch(record, allItems) {
             if (!record.serial || record.serial === '-') return { error: false, msg: '' };
-            
             let matchedItems = findMatchingItemQueue(record, allItems);
             
             if (!matchedItems || matchedItems.length === 0) {
-                return { error: true, msg: 'Неизвестный префикс серийного номера (не найдено в партиях)!' };
+                return { error: true, msg: 'Неизвестный префикс (нет в партиях)!' };
             }
 
             let expectedItem = matchedItems[0];
-            
             let rModel = (record.model || '').toLowerCase().replace(/c/g, 'с').replace(/m/g, 'м').replace(/t/g, 'т').replace(/[\s\-]/g, '');
             let iModelNorm = (expectedItem.displayName || '').toLowerCase().replace(/c/g, 'с').replace(/m/g, 'м').replace(/t/g, 'т').replace(/[\s\-]/g, '');
 
@@ -867,7 +885,7 @@
             let iSize = iSizeMatch ? iSizeMatch[0] : '';
 
             if (iSize && rSize && rSize !== iSize) {
-                return { error: true, msg: `Несоответствие типоразмера! Ожидается: ${expectedItem.displayName}, указано: ${record.model || 'пусто'}` };
+                return { error: true, msg: `Несовпадение G! Ожидается: ${expectedItem.displayName}` };
             }
 
             let isItemMirtek = iModelNorm.includes('миртек');
@@ -884,9 +902,8 @@
             if (isItemNeo && (isTypedMirtek || isTypedSmt)) brandError = true;
 
             if (brandError) {
-                 return { error: true, msg: `Несоответствие бренда! Ожидается: ${expectedItem.displayName}, указано: ${record.model || 'пусто'}` };
+                 return { error: true, msg: `Несоответствие бренда! Ожидается: ${expectedItem.displayName}` };
             }
-
             return { error: false, msg: '' };
         }
 
@@ -907,12 +924,16 @@
 
         let dbList = [];
         let inventoryV2Data = {}; 
-        let sortDirection = {};
         let isInlineEditing = false; 
 
         let currentRowsLimit = 200;
         let searchDebounceTimer = null;
         let onlyIssuesFilterActive = false;
+        let onlyAnomaliesFilterActive = false;
+
+        let currentSortCol = localStorage.getItem('botstm_sortCol') || null;
+        let currentSortType = localStorage.getItem('botstm_sortType') || 'string';
+        let currentSortDir = localStorage.getItem('botstm_sortDir') || 'asc';
 
         let pendingDuplicatesToDelete = [];
         let lastCheckedCheckbox = null;
@@ -929,218 +950,196 @@
             for (let f of fieldsToCompare) {
                 let v1 = (r1[f] !== undefined && r1[f] !== null) ? String(r1[f]).trim() : '';
                 let v2 = (r2[f] !== undefined && r2[f] !== null) ? String(r2[f]).trim() : '';
-                
                 if (f === 'passport') {
                     v1 = (r1[f] === true || r1[f] === 'true') ? '1' : '0';
                     v2 = (r2[f] === true || r2[f] === 'true') ? '1' : '0';
                 }
-
-                if (v1 !== v2) {
-                    return false;
-                }
+                if (v1 !== v2) return false;
             }
             return true;
         }
 
         function findExactDuplicatesAndPrompt() {
-            if (!Array.isArray(dbList) || dbList.length === 0) {
-                alert('База пуста.');
-                return;
-            }
-
+            if (!Array.isArray(dbList) || dbList.length === 0) return alert('База пуста.');
             const duplicates = [];
             const visited = new Set();
             const groups = [];
 
             for (let i = 0; i < dbList.length; i++) {
                 if (visited.has(dbList[i].id)) continue;
-
                 const currentGroup = [dbList[i]];
                 for (let j = i + 1; j < dbList.length; j++) {
                     if (visited.has(dbList[j].id)) continue;
-
                     if (areRecordsIdenticalExceptDate(dbList[i], dbList[j])) {
                         currentGroup.push(dbList[j]);
                         visited.add(dbList[j].id);
                     }
                 }
-
                 if (currentGroup.length > 1) {
-                    for (let k = 1; k < currentGroup.length; k++) {
-                        duplicates.push(currentGroup[k].id);
-                    }
-                    groups.push({
-                        original: currentGroup[0],
-                        totalCount: currentGroup.length,
-                        duplicatesCount: currentGroup.length - 1
-                    });
+                    for (let k = 1; k < currentGroup.length; k++) { duplicates.push(currentGroup[k].id); }
+                    groups.push({ original: currentGroup[0], totalCount: currentGroup.length, duplicatesCount: currentGroup.length - 1 });
                 }
             }
 
             pendingDuplicatesToDelete = duplicates;
-
-            if (duplicates.length === 0) {
-                alert('Полных дубликатов не обнаружено. Все повторные серийники имеют различия в других полях.');
-                return;
-            }
+            if (duplicates.length === 0) return alert('Полных дубликатов не обнаружено.');
 
             const body = document.getElementById('exactDuplicatesBody');
             let html = `
                 <p style="margin-bottom: 12px; font-size: 0.95rem; color: var(--text-primary);">
                     Найдено полных дубликатов: <b style="color: var(--danger-color); font-size: 1.1rem;">${duplicates.length} шт.</b><br>
-                    <span style="font-size:0.85rem; color:var(--text-secondary);">
-                        Каждая из этих записей абсолютно совпадает с оригиналом по всем полям (исключая дату и время отправки отчета). Оригинальные записи будут сохранены, а копии удалены.
-                    </span>
+                    <span style="font-size:0.85rem; color:var(--text-secondary);">Оригинальные записи будут сохранены, а копии удалены.</span>
                 </p>
                 <div style="max-height: 340px; overflow-y: auto; border: 1px solid var(--border-color); border-radius: 8px; padding: 8px; background: #f8fafc;">
             `;
 
             groups.forEach((g, idx) => {
-                const s = g.original.serial || 'без серийника';
-                const inst = g.original.installer || 'без монтажника';
-                const obj = g.original.objectName || 'без объекта';
-                const addr = g.original.address || '';
-                
                 html += `
                     <div style="padding: 8px 12px; border-bottom: 1px solid var(--border-color); font-size: 0.85rem; display: flex; justify-content: space-between; align-items: center;">
                         <div>
-                            <b>${idx + 1}. Серийник: ${s}</b> (${g.original.model || '-'})<br>
-                            <span style="color:var(--text-secondary);">${obj} — ${addr}</span><br>
-                            <span style="font-size:0.75rem; color:var(--accent-cyan);">Монтажник: ${inst}</span>
+                            <b>${idx + 1}. Серийник: ${escapeHTML(g.original.serial || '-')}</b> (${escapeHTML(g.original.model || '-')})<br>
+                            <span style="color:var(--text-secondary);">${escapeHTML(g.original.objectName || '-')}</span><br>
+                            <span style="font-size:0.75rem; color:var(--accent-cyan);">Монтажник: ${escapeHTML(g.original.installer || '-')}</span>
                         </div>
                         <div style="text-align: right; white-space: nowrap;">
-                            <span style="background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 12px; font-weight: 700; font-size: 0.8rem;">
-                                Лишних копий: ${g.duplicatesCount} шт.
-                            </span>
+                            <span style="background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 12px; font-weight: 700; font-size: 0.8rem;">Лишних: ${g.duplicatesCount} шт.</span>
                         </div>
                     </div>
                 `;
             });
-
-            html += `</div>`;
-            body.innerHTML = html;
+            body.innerHTML = html + `</div>`;
             openModal('exactDuplicatesModal');
         }
 
         function executeDeleteDuplicates() {
-            if (!pendingDuplicatesToDelete || pendingDuplicatesToDelete.length === 0) {
-                closeModal('exactDuplicatesModal');
-                return;
-            }
-
+            if (!pendingDuplicatesToDelete || pendingDuplicatesToDelete.length === 0) return closeModal('exactDuplicatesModal');
             const updates = {};
-            pendingDuplicatesToDelete.forEach(id => {
-                updates[id] = null;
-            });
-
+            pendingDuplicatesToDelete.forEach(id => { updates[id] = null; });
             const count = pendingDuplicatesToDelete.length;
             const btn = document.getElementById('btnConfirmDeleteDuplicates');
-            btn.disabled = true;
-            btn.innerText = 'Удаление...';
+            btn.disabled = true; btn.innerText = 'Удаление...';
 
             dbRef.update(updates).then(() => {
-                btn.disabled = false;
-                btn.innerText = 'Подтвердить и удалить';
+                btn.disabled = false; btn.innerText = 'Подтвердить и удалить';
                 closeModal('exactDuplicatesModal');
                 pendingDuplicatesToDelete = [];
                 alert(`Успешно удалено полных дубликатов: ${count} шт.`);
-                renderAll();
             }).catch(err => {
-                btn.disabled = false;
-                btn.innerText = 'Подтвердить и удалить';
+                btn.disabled = false; btn.innerText = 'Подтвердить и удалить';
                 alert('Ошибка при удалении: ' + err.message);
             });
         }
 
         function deleteSelectedRecords() {
             const checkboxes = document.querySelectorAll('.row-checkbox:checked');
-            if (checkboxes.length === 0) {
-                alert('Выберите хотя бы одну запись для удаления (отметьте галочками).');
-                return;
-            }
-
-            const count = checkboxes.length;
-            if (!confirm(`Вы действительно хотите безвозвратно удалить выбранные записи (${count} шт.)?`)) {
-                return;
-            }
+            if (checkboxes.length === 0) return alert('Выберите хотя бы одну запись для удаления.');
+            if (!confirm(`Вы действительно хотите безвозвратно удалить выбранные записи (${checkboxes.length} шт.)?`)) return;
 
             const updates = {};
-            checkboxes.forEach(cb => {
-                updates[cb.value] = null;
-            });
-
+            checkboxes.forEach(cb => { updates[cb.value] = null; });
             dbRef.update(updates).then(() => {
-                alert(`Удалено записей: ${count} шт.`);
+                alert(`Удалено записей: ${checkboxes.length} шт.`);
                 const mainCb = document.getElementById('selectAllCheckbox');
                 if (mainCb) mainCb.checked = false;
                 lastCheckedCheckbox = null;
-                renderAll();
-            }).catch(err => {
-                alert('Ошибка удаления: ' + err.message);
-            });
+            }).catch(err => alert('Ошибка удаления: ' + err.message));
         }
 
         function handleRowCheckboxClick(event, checkbox) {
             const checkboxes = Array.from(document.querySelectorAll('.row-checkbox'));
-            
             if (event.shiftKey && lastCheckedCheckbox && lastCheckedCheckbox !== checkbox) {
                 let start = checkboxes.indexOf(lastCheckedCheckbox);
                 let end = checkboxes.indexOf(checkbox);
-
                 if (start !== -1 && end !== -1) {
                     const low = Math.min(start, end);
                     const high = Math.max(start, end);
                     const state = checkbox.checked;
-
-                    for (let i = low; i <= high; i++) {
-                        checkboxes[i].checked = state;
-                    }
+                    for (let i = low; i <= high; i++) { checkboxes[i].checked = state; }
                 }
             }
-
             lastCheckedCheckbox = checkbox;
         }
 
-        // Общая функция строгой проверки записи на ошибки
         function evaluateRecordErrors(item, serialCounts, simCounts, allItems) {
+            let errorMessages = [];
+            let anomalyMessages = [];
             let serialError = false;
             let simError = false;
             let powerError = false;
-            let emptyError = false;
-            let errorMessages = [];
-
-            if (item.serial && item.serial !== '-') {
-                let isDuplicate = (serialCounts[item.serial] || 0) > 1;
-                let mismatchCheck = checkModelSerialMismatch(item, allItems);
-                if (isDuplicate) {
-                    errorMessages.push("Дубликат №!");
+            let hasError = false;
+            let hasAnomaly = false;
+            
+            let valSerial = (item.serial || '').trim();
+            if (valSerial && valSerial !== '-') {
+                if ((serialCounts[valSerial] || 0) > 1) {
+                    errorMessages.push("Дубликат №");
                     serialError = true;
                 }
+                let mismatchCheck = checkModelSerialMismatch(item, allItems);
                 if (mismatchCheck.error) {
                     errorMessages.push(mismatchCheck.msg.trim());
                     serialError = true;
                 }
             } else {
-                emptyError = true;
-                errorMessages.push("Нет серийного №!");
+                hasAnomaly = true;
+                anomalyMessages.push("Нет серийного №");
             }
 
-            if (item.simCardNumber && item.simCardNumber !== '-' && (simCounts[item.simCardNumber] || 0) > 1) {
-                simError = true;
-                errorMessages.push(`Дубликат SIM (${item.simCardNumber})!`);
+            let valSim = (item.simCardNumber || '').trim();
+            if (valSim && valSim !== '-' && valSim.toLowerCase() !== 'нет') {
+                if ((simCounts[valSim] || 0) > 1) {
+                    simError = true;
+                    errorMessages.push(`Дубликат SIM`);
+                }
+                if (!/^89701992\d{10}[a-zA-Z]?$/.test(valSim)) {
+                    simError = true;
+                    errorMessages.push(`Формат SIM!`);
+                }
+            } else if (!valSim || valSim === '-' || valSim.toLowerCase() === 'нет') {
+                hasAnomaly = true;
+                anomalyMessages.push("Нет SIM-карты");
             }
 
             if (!item.installer || item.installer.trim() === '' || item.installer === '-') {
-                emptyError = true;
-                errorMessages.push("Нет монтажника!");
+                hasAnomaly = true;
+                anomalyMessages.push("Нет монтажника");
             }
             if (!item.model || item.model.trim() === '' || item.model === '-') {
-                emptyError = true;
-                errorMessages.push("Нет модели!");
+                hasAnomaly = true;
+                anomalyMessages.push("Нет модели");
             }
             if (!item.objectName || item.objectName.trim() === '' || item.objectName === '-') {
-                emptyError = true;
-                errorMessages.push("Нет объекта!");
+                hasAnomaly = true;
+                anomalyMessages.push("Нет объекта");
+            }
+            if (!item.address || item.address.trim() === '' || item.address === '-') {
+                hasAnomaly = true;
+                anomalyMessages.push("Нет адреса");
+            }
+            if (!item.consumer || item.consumer.trim() === '' || item.consumer === '-') {
+                hasAnomaly = true;
+                anomalyMessages.push("Нет потребителя");
+            }
+            
+            let objNameNorm = (item.objectName || '').trim().toLowerCase();
+            if (objNameNorm !== 'частный дом') {
+                if (!item.position || item.position.trim() === '' || item.position === '-') {
+                    hasAnomaly = true;
+                    anomalyMessages.push("Нет должности");
+                }
+            }
+
+            if (!item.oldMeterModel || item.oldMeterModel.trim() === '' || item.oldMeterModel === '-') {
+                hasAnomaly = true;
+                anomalyMessages.push("Нет ст. модели");
+            }
+            if (!item.oldMeterSerial || item.oldMeterSerial.trim() === '' || item.oldMeterSerial === '-') {
+                hasAnomaly = true;
+                anomalyMessages.push("Нет ст. №");
+            }
+            if (!item.oldMeterReadings || item.oldMeterReadings.trim() === '' || item.oldMeterReadings === '-') {
+                hasAnomaly = true;
+                anomalyMessages.push("Нет ст. показаний");
             }
 
             if (item.model && item.totalPower && item.totalPower !== '-') {
@@ -1151,20 +1150,14 @@
                     let pVal = parseFloat(pValStr);
                     if (!isNaN(pVal) && pVal > MAX_POWER_MAP[size]) {
                         powerError = true;
-                        errorMessages.push(`Превыш. мощн. ${size} (${pVal}>${MAX_POWER_MAP[size]})`);
+                        errorMessages.push(`Мощность (${pVal}>${MAX_POWER_MAP[size]})`);
                     }
                 }
             }
 
-            let hasError = serialError || simError || powerError || emptyError;
-            return {
-                hasError: hasError,
-                serialError: serialError,
-                simError: simError,
-                powerError: powerError,
-                emptyError: emptyError,
-                errorMessages: errorMessages
-            };
+            hasError = serialError || simError || powerError;
+
+            return { hasError, hasAnomaly, serialError, simError, powerError, errorMessages, anomalyMessages };
         }
 
         function closeModal(id) { document.getElementById(id).classList.remove('active'); }
@@ -1180,104 +1173,89 @@
 
         function toggleOnlyIssuesFilter() {
             onlyIssuesFilterActive = !onlyIssuesFilterActive;
-            updateOnlyIssuesButtonState();
+            onlyAnomaliesFilterActive = false; 
+            updateFilterButtonsState();
             renderFullTable();
         }
 
-        function updateOnlyIssuesButtonState() {
-            const btn = document.getElementById('btnFilterIssues');
-            if (!btn) return;
+        function toggleOnlyAnomaliesFilter() {
+            onlyAnomaliesFilterActive = !onlyAnomaliesFilterActive;
+            onlyIssuesFilterActive = false; 
+            updateFilterButtonsState();
+            renderFullTable();
+        }
+
+        function updateFilterButtonsState() {
+            const btnIssues = document.getElementById('btnFilterIssues');
+            const btnAnomalies = document.getElementById('btnFilterAnomalies');
+            
             if (onlyIssuesFilterActive) {
-                btn.classList.add('btn-active-filter');
-                btn.innerText = '✕ Сбросить фильтр ошибок';
+                btnIssues.classList.add('btn-active-filter'); btnIssues.innerText = '✕ Сбросить ошибки';
             } else {
-                btn.classList.remove('btn-active-filter');
-                btn.innerText = '⚠️ Только с ошибками';
+                btnIssues.classList.remove('btn-active-filter'); btnIssues.innerText = '⚠️ Только с ошибками';
+            }
+
+            if (onlyAnomaliesFilterActive) {
+                btnAnomalies.classList.add('btn-active-anomaly'); btnAnomalies.innerText = '✕ Сбросить аномалии';
+            } else {
+                btnAnomalies.classList.remove('btn-active-anomaly'); btnAnomalies.innerText = '❓ Только аномалии';
             }
         }
 
-        function changeRowsLimit(val) {
-            currentRowsLimit = val === 'all' ? 'all' : parseInt(val, 10);
-            renderFullTable();
-        }
+        function changeRowsLimit(val) { currentRowsLimit = val === 'all' ? 'all' : parseInt(val, 10); renderFullTable(); }
 
         function renderStats() {
             const grid = document.getElementById('statsGrid');
-            const total = dbList.length;
-            
-            let serialCounts = {};
-            let simCounts = {};
+            let serialCounts = {}; let simCounts = {};
             dbList.forEach(item => {
-                if (item.serial && item.serial !== '-') {
-                    serialCounts[item.serial] = (serialCounts[item.serial] || 0) + 1;
-                }
-                if (item.simCardNumber && item.simCardNumber !== '-') {
-                    simCounts[item.simCardNumber] = (simCounts[item.simCardNumber] || 0) + 1;
-                }
+                if (item.serial && item.serial !== '-') serialCounts[item.serial] = (serialCounts[item.serial] || 0) + 1;
+                let sVal = (item.simCardNumber || '').trim();
+                if (sVal && sVal !== '-' && sVal.toLowerCase() !== 'нет') simCounts[sVal] = (simCounts[sVal] || 0) + 1;
             });
             let allItems = getAllItemsFromInventory();
 
-            let errorCount = 0;
+            let errorCount = 0; let anomalyCount = 0;
             dbList.forEach(item => {
                 let errInfo = evaluateRecordErrors(item, serialCounts, simCounts, allItems);
                 if (errInfo.hasError) errorCount++;
+                if (errInfo.hasAnomaly) anomalyCount++;
             });
 
             const installersCount = {};
-            dbList.forEach(i => { 
-                if(i.installer && i.installer.trim() !== '') {
-                    installersCount[i.installer] = (installersCount[i.installer]||0)+1; 
-                }
-            });
+            dbList.forEach(i => { if(i.installer && i.installer.trim() !== '') installersCount[i.installer] = 1; });
 
             const now = new Date();
-            const d = String(now.getDate()).padStart(2, '0');
-            const m = String(now.getMonth() + 1).padStart(2, '0');
-            const y = now.getFullYear();
-            const todayStr = `${d}.${m}.${y}`;
+            const todayStr = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
             
             let todayCount = 0;
-            
             dbList.forEach(item => {
                 if (!item.date) return;
                 const recordDateStr = item.date.split(',')[0].trim();
-                if (recordDateStr === todayStr) {
-                    todayCount++;
-                }
+                if (recordDateStr === todayStr) todayCount++;
             });
 
             grid.innerHTML = `
-                <div class="stat-card"><div class="stat-number">${total}</div><div class="stat-label">Всего установок</div></div>
-                <div class="stat-card" style="cursor: pointer; transition: transform 0.2s;" onclick="showTodayDetails()" title="Нажмите для просмотра деталей">
-                    <div class="stat-number">${todayCount}</div>
-                    <div class="stat-label" style="font-weight: 600;">Сегодня</div>
+                <div class="stat-card"><div class="stat-number">${dbList.length}</div><div class="stat-label">Всего установок</div></div>
+                <div class="stat-card" style="cursor: pointer;" onclick="showTodayDetails()" title="Нажмите для просмотра деталей">
+                    <div class="stat-number">${todayCount}</div><div class="stat-label" style="font-weight: 600;">Сегодня</div>
                 </div>
                 <div class="stat-card"><div class="stat-number">${Object.keys(installersCount).length}</div><div class="stat-label">Монтажников</div></div>
                 <div class="stat-card" style="cursor: pointer;" onclick="toggleOnlyIssuesFilter()" title="Нажмите для фильтрации таблицы по ошибкам">
-                    <div class="stat-number" style="color: var(--danger-color);">${errorCount}</div>
-                    <div class="stat-label">Ошибок и пустот</div>
+                    <div class="stat-number" style="color: var(--danger-color);">${errorCount}</div><div class="stat-label">Критичных ошибок</div>
                 </div>
             `;
         }
 
         function showTodayDetails() {
             const now = new Date();
-            const d = String(now.getDate()).padStart(2, '0');
-            const m = String(now.getMonth() + 1).padStart(2, '0');
-            const y = now.getFullYear();
-            const todayStr = `${d}.${m}.${y}`;
+            const todayStr = `${String(now.getDate()).padStart(2, '0')}.${String(now.getMonth() + 1).padStart(2, '0')}.${now.getFullYear()}`;
             
-            let todayRecords = dbList.filter(item => {
-                if (!item.date) return false;
-                const recordDateStr = item.date.split(',')[0].trim();
-                return recordDateStr === todayStr;
-            });
+            let todayRecords = dbList.filter(item => item.date && item.date.split(',')[0].trim() === todayStr);
 
             if (todayRecords.length === 0) {
                 document.getElementById('detailsTitle').innerText = 'Установки сегодня';
                 document.getElementById('detailsBody').innerHTML = '<p style="text-align:center; padding: 20px;">За сегодня установок нет.</p>';
-                openModal('detailsModal');
-                return;
+                openModal('detailsModal'); return;
             }
 
             let byInstaller = {};
@@ -1290,20 +1268,18 @@
             let html = '<ul style="list-style:none; padding:0; margin:0;">';
             Object.keys(byInstaller).sort().forEach(inst => {
                 html += `<li style="background:#f8fafc; padding:8px 12px; margin-top:12px; font-weight:600; border-radius:6px; color:var(--accent-cyan); border-left: 3px solid var(--accent-cyan); display:flex; align-items:center; gap:8px;">
-                    <span>${inst}</span> <span style="background:rgba(2, 132, 199, 0.1); padding:2px 8px; border-radius:12px; font-size:0.85rem;">(${byInstaller[inst].length} шт.)</span>
+                    <span>${escapeHTML(inst)}</span> <span style="background:rgba(2, 132, 199, 0.1); padding:2px 8px; border-radius:12px; font-size:0.85rem;">(${byInstaller[inst].length} шт.)</span>
                 </li>`;
                 byInstaller[inst].forEach(r => {
                     let displayTime = r.date && r.date.includes(',') ? r.date.split(',')[1].trim() : '';
                     html += `<li style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border-color);">
-                        <span><b>${r.model || '-'}</b><br><span style="font-size:0.75rem; color:var(--text-muted);">№ ${r.serial || '-'}</span></span>
-                        <span style="font-size:0.8rem; color:var(--text-secondary); text-align:right;">${r.objectName || 'Без объекта'}<br><b style="color:var(--text-primary);">${displayTime}</b></span>
+                        <span><b>${escapeHTML(r.model || '-')}</b><br><span style="font-size:0.75rem; color:var(--text-muted);">№ ${escapeHTML(r.serial || '-')}</span></span>
+                        <span style="font-size:0.8rem; color:var(--text-secondary); text-align:right;">${escapeHTML(r.objectName || 'Без объекта')}<br><b style="color:var(--text-primary);">${displayTime}</b></span>
                     </li>`;
                 });
             });
-            html += '</ul>';
-
             document.getElementById('detailsTitle').innerText = `Сегодня установлено: ${todayRecords.length} шт.`;
-            document.getElementById('detailsBody').innerHTML = html;
+            document.getElementById('detailsBody').innerHTML = html + '</ul>';
             openModal('detailsModal');
         }
 
@@ -1315,51 +1291,44 @@
 
             dbList.forEach(item => {
                 if (item.date) {
-                    let parts = item.date.split(',')[0].split('.');
+                    let parts = item.date.split(',')[0].trim().split('.');
                     if (parts.length === 3) {
                         let recordMonth = `${parts[2]}-${parts[1]}`;
                         let recordDay = `${parts[2]}-${parts[1]}-${parts[0]}`;
-                        
                         if (filterMonth && recordMonth !== filterMonth) return;
                         if (filterDate && recordDay !== filterDate) return;
-                    } else if (filterMonth || filterDate) {
-                        return;
-                    }
-                } else if (filterMonth || filterDate) {
-                    return;
-                }
+                    } else if (filterMonth || filterDate) return;
+                } else if (filterMonth || filterDate) return;
                 
                 let installer = item.installer || 'Неизвестно';
-                if (!stats[installer]) stats[installer] = { count: 0, records: [] };
+                if (!stats[installer]) stats[installer] = { count: 0 };
                 stats[installer].count++;
-                stats[installer].records.push(item);
             });
 
             let html = '';
             Object.keys(stats).sort().forEach(inst => {
                 html += `<tr>
-                    <td><b style="color: var(--text-primary);">${inst}</b></td>
+                    <td><b style="color: var(--text-primary);">${escapeHTML(inst)}</b></td>
                     <td class="text-center"><b style="color:var(--accent-blue); font-size:1.1rem;">${stats[inst].count}</b></td>
                     <td class="text-right">
-                        <button class="btn btn-outline btn-small" onclick="showDetails('${inst}')">Детализация</button>
-                        <button class="btn btn-outline btn-small" onclick="editInstaller('${inst}')">Правка</button>
+                        <button class="btn btn-outline btn-small" onclick="showDetails('${escapeHTML(inst)}')">Детализация</button>
+                        <button class="btn btn-outline btn-small" onclick="editInstaller('${escapeHTML(inst)}')">Правка</button>
                     </td>
                 </tr>`;
             });
             if (html === '') html = '<tr><td colspan="3" style="text-align:center; padding:20px; color: var(--text-muted);">Нет данных</td></tr>';
             tbody.innerHTML = html;
-            renderStats();
         }
 
         function showDetails(installerName) {
             const filterMonth = document.getElementById('filterMonth').value;
             const filterDate = document.getElementById('filterDate').value;
-            let records = dbList.filter(item => item.installer === installerName);
+            let records = dbList.filter(item => (item.installer || 'Неизвестно') === installerName);
 
             if (filterMonth || filterDate) {
                 records = records.filter(item => {
                     if(!item.date) return false;
-                    let parts = item.date.split(',')[0].split('.');
+                    let parts = item.date.split(',')[0].trim().split('.');
                     if(parts.length === 3) {
                         let recordMonth = `${parts[2]}-${parts[1]}`;
                         let recordDay = `${parts[2]}-${parts[1]}-${parts[0]}`;
@@ -1373,7 +1342,7 @@
 
             let byDay = {};
             records.forEach(r => {
-                let day = r.date ? r.date.split(',')[0] : 'Без даты';
+                let day = r.date ? r.date.split(',')[0].trim() : 'Без даты';
                 if (!byDay[day]) byDay[day] = [];
                 byDay[day].push(r);
             });
@@ -1381,47 +1350,37 @@
             let html = '<ul style="list-style:none; padding:0; margin:0;">';
             Object.keys(byDay).sort((a, b) => {
                 let pA = a.split('.'), pB = b.split('.');
-                if(pA.length === 3 && pB.length === 3) {
-                    return new Date(`${pB[2]}-${pB[1]}-${pB[0]}`) - new Date(`${pA[2]}-${pA[1]}-${pA[0]}`);
-                }
+                if(pA.length === 3 && pB.length === 3) return new Date(`${pB[2]}-${pB[1]}-${pB[0]}`) - new Date(`${pA[2]}-${pA[1]}-${pA[0]}`);
                 return 0;
             }).forEach(d => {
-                let countForDay = byDay[d].length;
                 html += `<li style="background:#f1f5f9; padding:8px 12px; margin-top:12px; font-weight:600; border-radius:6px; color:var(--accent-blue); display:flex; align-items:center; gap:8px;">
-                    <span>${d}</span>
-                    <span style="background:rgba(37, 99, 235, 0.1); padding:2px 8px; border-radius:12px; font-size:0.85rem; font-weight:700;">(${countForDay} шт.)</span>
+                    <span>${escapeHTML(d)}</span><span style="background:rgba(37, 99, 235, 0.1); padding:2px 8px; border-radius:12px; font-size:0.85rem; font-weight:700;">(${byDay[d].length} шт.)</span>
                 </li>`;
                 byDay[d].forEach(r => {
                     let displayTime = r.date && r.date.includes(',') ? r.date.split(',')[1].trim() : '';
                     html += `<li style="display:flex; justify-content:space-between; align-items:center; padding:8px 12px; border-bottom:1px solid var(--border-color);">
-                        <span>${r.model || '-'} (${r.serial || '-'})</span>
-                        <span style="font-size:0.8rem; color:var(--text-secondary); text-align:right;">${r.objectName || ''}<br><b style="color:var(--text-primary);">${displayTime}</b></span>
+                        <span>${escapeHTML(r.model || '-')} (${escapeHTML(r.serial || '-')})</span>
+                        <span style="font-size:0.8rem; color:var(--text-secondary); text-align:right;">${escapeHTML(r.objectName || '')}<br><b style="color:var(--text-primary);">${displayTime}</b></span>
                     </li>`;
                 });
             });
-            html += '</ul>';
-
             document.getElementById('detailsTitle').innerText = `Установки: ${installerName} (Всего: ${records.length} шт.)`;
-            document.getElementById('detailsBody').innerHTML = html || '<p style="text-align:center; padding:20px;">Нет записей</p>';
+            document.getElementById('detailsBody').innerHTML = html + '</ul>' || '<p style="text-align:center; padding:20px;">Нет записей</p>';
             openModal('detailsModal');
         }
 
         function editInstaller(installer) {
-            if (!confirm(`Редактировать все записи монтажника "${installer}"? Это изменит поле "Монтажник" для всех его установок.`)) return;
+            if (!confirm(`Редактировать все записи монтажника "${installer}"?`)) return;
             const newName = prompt('Введите новое имя монтажника:', installer);
             if (newName && newName !== installer) {
-                const existing = dbList.some(item => item.installer === newName);
-                if (existing && !confirm(`Имя "${newName}" уже существует. Объединить записи?`)) return;
-                
                 const batchUpdates = {};
                 dbList.forEach(item => {
-                    if (item.installer === installer) {
-                        batchUpdates[`${item.id}/installer`] = newName;
-                    }
+                    let inst = item.installer || 'Неизвестно';
+                    if (inst === installer) batchUpdates[`${item.id}/installer`] = newName;
                 });
-                
+                if(Object.keys(batchUpdates).length === 0) return alert('Совпадений не найдено.');
                 dbRef.update(batchUpdates)
-                    .then(() => alert(`Имя монтажника изменено на "${newName}" для ${Object.keys(batchUpdates).length} записей.`))
+                    .then(() => alert(`Изменено записей: ${Object.keys(batchUpdates).length}.`))
                     .catch(err => alert('Ошибка: ' + err.message));
             }
         }
@@ -1429,95 +1388,70 @@
         function toggleBatch(batchId) {
             const container = document.getElementById(`batch_${batchId}`);
             const isCollapsed = container.classList.contains('collapsed');
+            
             if (isCollapsed) {
                 container.classList.remove('collapsed');
+                inventoryV2Data[batchId].isExpanded = true;
                 invV2Ref.child(batchId).update({ isExpanded: true });
             } else {
                 container.classList.add('collapsed');
+                inventoryV2Data[batchId].isExpanded = false;
                 invV2Ref.child(batchId).update({ isExpanded: false });
             }
         }
 
-        function openAddBatchModal() {
-            document.getElementById('newBatchNameInput').value = '';
-            openModal('addBatchModal');
-        }
+        function openAddBatchModal() { document.getElementById('newBatchNameInput').value = ''; openModal('addBatchModal'); }
 
         function saveNewBatch() {
             const name = document.getElementById('newBatchNameInput').value.trim();
-            if (!name) return alert('Введите название партии!');
-            
-            invV2Ref.push({
-                name: name,
-                isExpanded: true,
-                order: Date.now()
-            }).then(() => closeModal('addBatchModal')).catch(e => alert(e.message));
+            if (!name) return alert('Введите название!');
+            invV2Ref.push({ name: name, isExpanded: true, order: Date.now() }).then(() => closeModal('addBatchModal')).catch(e => alert(e.message));
         }
 
         function openBatchPlannedModal(batchId, event) {
             event.stopPropagation(); 
             let batchData = inventoryV2Data[batchId];
-            if (!batchData || !batchData.items) return alert('В этой партии нет позиций для настройки плана.');
+            if (!batchData || !batchData.items) return alert('Нет позиций для плана.');
 
             document.getElementById('plannedModalTitle').innerText = 'План: ' + batchData.name;
             document.getElementById('planned_batchId').value = batchId;
 
-            const container = document.getElementById('plannedInputsContainer');
             let html = '';
-            
             let sortedItems = Object.entries(batchData.items).sort((a,b) => (a[1].order || 0) - (b[1].order || 0));
             sortedItems.forEach(([itemId, itemData]) => {
-                let val = itemData.planned || 0;
                 html += `<div class="form-group" style="margin-bottom: 8px; display: flex; flex-direction: row; justify-content: space-between; align-items: center;">
-                            <label style="font-weight: 600; font-size: 0.9rem;">${itemData.displayName}</label>
-                            <input type="number" id="plan_${itemId}" value="${val}" style="width: 100px; text-align: center; font-weight: bold;" min="0">
+                            <label style="font-weight: 600; font-size: 0.9rem;">${escapeHTML(itemData.displayName)}</label>
+                            <input type="number" id="plan_${itemId}" value="${itemData.planned || 0}" style="width: 100px; text-align: center; font-weight: bold;" min="0">
                          </div>`;
             });
-            
-            container.innerHTML = html;
-            openModal('plannedModal');
+            document.getElementById('plannedInputsContainer').innerHTML = html; openModal('plannedModal');
         }
 
         function saveBatchPlannedValues() {
             const batchId = document.getElementById('planned_batchId').value;
-            if (!batchId || !inventoryV2Data[batchId] || !inventoryV2Data[batchId].items) return;
-
             let updates = {};
             Object.keys(inventoryV2Data[batchId].items).forEach(itemId => {
                 let input = document.getElementById('plan_' + itemId);
-                if (input) {
-                    let val = parseInt(input.value) || 0;
-                    updates[itemId + '/planned'] = val;
-                }
+                if (input) updates[itemId + '/planned'] = parseInt(input.value) || 0;
             });
-
-            invV2Ref.child(batchId).child('items').update(updates).then(() => {
-                closeModal('plannedModal');
-            }).catch(e => alert(e.message));
+            invV2Ref.child(batchId).child('items').update(updates).then(() => closeModal('plannedModal')).catch(e => alert(e.message));
         }
 
         function openAddItemModal(batchId = null) {
             const select = document.getElementById('i_batchId');
             select.innerHTML = '';
-            
-            let sortedBatches = Object.entries(inventoryV2Data).sort((a,b) => a[1].order - b[1].order);
-            sortedBatches.forEach(([bId, bData]) => {
-                let opt = document.createElement('option');
-                opt.value = bId;
-                opt.innerText = bData.name;
-                if (bId === batchId) opt.selected = true;
-                select.appendChild(opt);
+            Object.entries(inventoryV2Data).sort((a,b) => a[1].order - b[1].order).forEach(([bId, bData]) => {
+                let opt = document.createElement('option'); opt.value = bId; opt.innerText = bData.name;
+                if (bId === batchId) opt.selected = true; select.appendChild(opt);
             });
             select.disabled = false;
             
             document.getElementById('addItemTitle').innerText = 'Добавить позицию';
             document.getElementById('i_itemId').value = '';
             document.getElementById('i_displayName').value = '';
-            document.getElementById('i_searchModel').value = ''; 
             document.getElementById('i_searchSerial').value = '';
+            document.getElementById('i_searchSerial2').value = '';
             document.getElementById('i_initialWarehouse').value = '0';
-            document.getElementById('i_itemColor').value = '#2563eb';
-            
             openModal('addItemModal');
         }
 
@@ -1525,13 +1459,13 @@
             let itemData = inventoryV2Data[batchId].items[itemId];
             if (!itemData) return;
 
-            document.getElementById('i_batchId').innerHTML = `<option value="${batchId}">${inventoryV2Data[batchId].name}</option>`;
+            document.getElementById('i_batchId').innerHTML = `<option value="${batchId}">${escapeHTML(inventoryV2Data[batchId].name)}</option>`;
             document.getElementById('i_batchId').disabled = true;
 
             document.getElementById('i_itemId').value = itemId;
             document.getElementById('i_displayName').value = itemData.displayName || '';
-            document.getElementById('i_searchModel').value = itemData.searchModel !== undefined ? itemData.searchModel : (itemData.brandKey || '');
             document.getElementById('i_searchSerial').value = itemData.searchSerial !== undefined ? itemData.searchSerial : (itemData.sizeKey || '');
+            document.getElementById('i_searchSerial2').value = itemData.searchSerial2 || '';
             document.getElementById('i_initialWarehouse').value = itemData.warehouse || 0;
             document.getElementById('i_itemColor').value = itemData.itemColor || '#2563eb';
 
@@ -1542,101 +1476,65 @@
         function saveItem() {
             const batchId = document.getElementById('i_batchId').value;
             const itemId = document.getElementById('i_itemId').value;
-            const displayName = document.getElementById('i_displayName').value.trim();
-            const searchModel = document.getElementById('i_searchModel').value.trim();
-            const searchSerial = document.getElementById('i_searchSerial').value.trim();
-            const initialWarehouse = parseInt(document.getElementById('i_initialWarehouse').value) || 0;
-            const itemColor = document.getElementById('i_itemColor').value;
-            
-            if (!batchId || !displayName) return alert('Заполните название и выберите партию!');
-            if (!searchSerial) return alert('Заполните префикс для поиска по заводскому номеру (первые цифры номера)!');
             
             let data = {
-                displayName: displayName,
-                searchModel: searchModel,
-                searchSerial: searchSerial,
-                warehouse: initialWarehouse,
-                itemColor: itemColor
+                displayName: document.getElementById('i_displayName').value.trim(),
+                searchSerial: document.getElementById('i_searchSerial').value.trim(),
+                searchSerial2: document.getElementById('i_searchSerial2').value.trim(),
+                warehouse: parseInt(document.getElementById('i_initialWarehouse').value) || 0,
+                itemColor: document.getElementById('i_itemColor').value
             };
+            
+            if (!batchId || !data.displayName) return alert('Заполните название и выберите партию!');
+            if (!data.searchSerial && !data.searchSerial2) return alert('Заполните хотя бы один префикс!');
 
             if (itemId) {
-                invV2Ref.child(batchId).child('items').child(itemId).update(data)
-                .then(() => closeModal('addItemModal')).catch(e => alert(e.message));
+                invV2Ref.child(batchId).child('items').child(itemId).update(data).then(() => closeModal('addItemModal'));
             } else {
-                data.planned = 0; 
-                data.base_installers = 0;
-                data.offset_installed = 0;
-                data.order = Date.now();
-                
-                invV2Ref.child(batchId).child('items').push(data)
-                .then(() => closeModal('addItemModal')).catch(e => alert(e.message));
+                data.planned = 0; data.base_installers = 0; data.offset_installed = 0; data.order = Date.now();
+                invV2Ref.child(batchId).child('items').push(data).then(() => closeModal('addItemModal'));
             }
         }
 
         function editInventoryCellV2(td, batchId, itemId, field, effectiveInstalled) {
             if (td.querySelector('input')) return; 
-            
             let itemData = inventoryV2Data[batchId].items[itemId];
-            
-            let base_inst = itemData.base_installers || 0;
-            let offset_inst = itemData.offset_installed || 0;
-            let true_current_installers = base_inst - (effectiveInstalled - offset_inst);
-
             let span = td.querySelector('span');
             let currentVal = parseInt(span.innerText) || 0;
             
             let input = document.createElement('input');
-            input.type = 'number';
-            input.value = currentVal;
-            input.className = 'inline-edit-input';
-            input.style.width = '80px';
-            input.style.textAlign = 'center';
-            input.style.padding = '4px 6px';
-            input.style.margin = '0';
+            input.type = 'number'; input.value = currentVal; input.className = 'inline-edit-input';
+            input.style.width = '80px'; input.style.textAlign = 'center'; input.style.padding = '4px 6px'; input.style.margin = '0';
             
-            td.innerHTML = '';
-            td.appendChild(input);
-            input.focus();
-            
+            td.innerHTML = ''; td.appendChild(input); input.focus();
             let saved = false;
             
             function save() {
-                if (saved) return;
-                saved = true;
-                
+                if (saved) return; saved = true;
                 let newVal = parseInt(input.value) || 0;
                 let updates = {};
                 
                 if (field === 'warehouse') {
                     updates = { warehouse: newVal };
                 } else if (field === 'base_installers') {
-                    let diff = newVal - true_current_installers;
-                    let current_warehouse = itemData.warehouse || 0;
-                    let new_warehouse = current_warehouse - diff;
+                    let base_inst = itemData.base_installers || 0;
+                    let offset_inst = itemData.offset_installed || 0;
+                    let true_current = base_inst - (effectiveInstalled - offset_inst);
                     
-                    updates = {
-                        base_installers: newVal,
-                        offset_installed: effectiveInstalled, 
-                        warehouse: new_warehouse 
-                    };
+                    let diff = newVal - true_current;
+                    updates = { base_installers: newVal, offset_installed: effectiveInstalled, warehouse: (itemData.warehouse || 0) - diff };
                 }
                 
-                invV2Ref.child(batchId).child('items').child(itemId).update(updates).catch(e => alert(e.message));
+                invV2Ref.child(batchId).child('items').child(itemId).update(updates);
                 td.innerHTML = `<span>${newVal}</span>`;
             }
             
             input.onblur = save;
-            input.onkeydown = function(e) {
-                if (e.key === 'Enter') save();
-                if (e.key === 'Escape') {
-                    saved = true;
-                    td.innerHTML = `<span>${currentVal}</span>`;
-                }
-            };
+            input.onkeydown = function(e) { if (e.key === 'Enter') save(); if (e.key === 'Escape') { saved = true; td.innerHTML = `<span>${currentVal}</span>`; } };
         }
 
         function deleteItem(batchId, itemId) {
-            if (confirm('ВНИМАНИЕ! Удаление позиции навсегда сотрет введенные вручную остатки на складе и у монтажников для этой строки. Вы точно хотите удалить эту позицию?')) {
+            if (confirm('ВНИМАНИЕ! Вы точно хотите удалить эту позицию? Все введенные остатки пропадут.')) {
                 invV2Ref.child(batchId).child('items').child(itemId).remove();
             }
         }
@@ -1652,9 +1550,7 @@
 
             dbList.forEach(record => {
                 let queue = findMatchingItemQueue(record, allItems);
-                if (queue && queue.length > 0) {
-                    processedItemsInstalled[queue[0].itemId]++; 
-                }
+                if (queue && queue.length > 0) processedItemsInstalled[queue[0].itemId]++; 
             });
 
             let sortedBatches = Object.entries(inventoryV2Data).sort((a,b) => a[1].order - b[1].order);
@@ -1665,7 +1561,7 @@
                 let html = `
                 <div class="batch-container ${isCollapsedClass}" id="batch_${batchId}">
                     <div class="batch-header" onclick="toggleBatch('${batchId}')">
-                        <div class="batch-title"><span class="chevron">▼</span> ${batchData.name}</div>
+                        <div class="batch-title"><span class="chevron">▼</span> ${escapeHTML(batchData.name)}</div>
                         <div class="batch-actions" onclick="event.stopPropagation()">
                             <button class="btn btn-outline btn-small" onclick="openBatchPlannedModal('${batchId}', event)">Настроить план</button>
                             <button class="btn btn-outline btn-small" onclick="openAddItemModal('${batchId}')">+ Добавить позицию</button>
@@ -1692,13 +1588,10 @@
                     
                     sortedItems.forEach(([itemId, itemData]) => {
                         let effectiveInstalled = processedItemsInstalled[itemId] || 0;
-                        
                         let current_warehouse = itemData.warehouse || 0;
                         let base_inst = itemData.base_installers || 0;
                         let offset_inst = itemData.offset_installed || 0;
-                        let current_installers = base_inst - (effectiveInstalled - offset_inst);
-                        if (current_installers < 0) current_installers = 0;
-
+                        let current_installers = Math.max(0, base_inst - (effectiveInstalled - offset_inst));
                         let total = current_warehouse + current_installers + effectiveInstalled;
                         let plan = itemData.planned || 0;
 
@@ -1707,29 +1600,19 @@
                         
                         if (plan > 0 && total !== plan) {
                             totalStyle += " color: #991b1b; background-color: #fee2e2; cursor: help;";
-                            totalTitle = `title="Несоответствие! По плану должно быть: ${plan} шт., а по факту: ${total} шт."`;
-                        } else {
-                            totalStyle += " color: var(--accent-blue);";
-                        }
+                            totalTitle = `title="Несоответствие! План: ${plan} шт., факт: ${total} шт."`;
+                        } else { totalStyle += " color: var(--accent-blue);"; }
 
                         html += `<tr>
-                            <td><b>${itemData.displayName}</b></td>
-                            <td class="text-center" style="font-size: 1.1rem; color: var(--text-primary); cursor: pointer;" title="Двойной клик для редактирования" ondblclick="editInventoryCellV2(this, '${batchId}', '${itemId}', 'warehouse', ${effectiveInstalled})">
-                                <span>${current_warehouse}</span>
-                            </td>
-                            <td class="text-center" style="font-size: 1.1rem; color: var(--warning-color); font-weight: 600; cursor: pointer;" title="Двойной клик для редактирования" ondblclick="editInventoryCellV2(this, '${batchId}', '${itemId}', 'base_installers', ${effectiveInstalled})">
-                                <span>${current_installers}</span>
-                            </td>
-                            <td class="text-center" style="font-size: 1.1rem;">
-                                <span class="text-success">${effectiveInstalled}</span>
-                            </td>
-                            <td class="text-center" style="${totalStyle}" ${totalTitle}>
-                                ${total}
-                            </td>
+                            <td><b>${escapeHTML(itemData.displayName)}</b></td>
+                            <td class="text-center" style="font-size: 1.1rem; color: var(--text-primary); cursor: pointer;" title="Двойной клик для редактирования" ondblclick="editInventoryCellV2(this, '${batchId}', '${itemId}', 'warehouse', ${effectiveInstalled})"><span>${current_warehouse}</span></td>
+                            <td class="text-center" style="font-size: 1.1rem; color: var(--warning-color); font-weight: 600; cursor: pointer;" title="Двойной клик для редактирования" ondblclick="editInventoryCellV2(this, '${batchId}', '${itemId}', 'base_installers', ${effectiveInstalled})"><span>${current_installers}</span></td>
+                            <td class="text-center" style="font-size: 1.1rem;"><span class="text-success">${effectiveInstalled}</span></td>
+                            <td class="text-center" style="${totalStyle}" ${totalTitle}>${total}</td>
                             <td class="text-center">
                                 <div style="display:flex; justify-content:center; gap:4px;">
-                                    <button class="btn btn-outline btn-small" style="padding: 4px 8px;" onclick="editItem('${batchId}', '${itemId}')" title="Редактировать ключи и название">✎</button>
-                                    <button class="btn btn-outline btn-small" style="color:var(--danger-color); padding: 4px 8px;" onclick="deleteItem('${batchId}', '${itemId}')" title="Удалить">✕</button>
+                                    <button class="btn btn-outline btn-small" onclick="editItem('${batchId}', '${itemId}')" title="Редактировать">✎</button>
+                                    <button class="btn btn-outline btn-small" style="color:var(--danger-color);" onclick="deleteItem('${batchId}', '${itemId}')" title="Удалить">✕</button>
                                 </div>
                             </td>
                         </tr>`;
@@ -1737,27 +1620,19 @@
                 } else {
                     html += `<tr><td colspan="6" class="text-center" style="color: var(--text-muted); padding: 20px;">Нет позиций в этой партии</td></tr>`;
                 }
-                
-                html += `</tbody></table></div></div></div>`;
-                container.innerHTML += html;
+                container.innerHTML += html + `</tbody></table></div></div></div>`;
             });
         }
 
         function updatePassport(id, isChecked) {
-            dbRef.child(id).update({ passport: isChecked }).catch(e => alert('Ошибка сохранения статуса паспорта: ' + e.message));
+            dbRef.child(id).update({ passport: isChecked }).catch(e => alert('Ошибка сохранения: ' + e.message));
         }
-        
         function deleteRecord(id, event) {
             if (event) event.stopPropagation(); 
-            if (confirm('Вы уверены, что хотите удалить эту запись? Действие необратимо.')) {
-                dbRef.child(id).remove().catch(e => alert('Ошибка удаления: ' + e.message));
-            }
+            if (confirm('Вы уверены, что хотите удалить эту запись? Действие необратимо.')) dbRef.child(id).remove();
         }
 
-        function filterTableDebounced() {
-            clearTimeout(searchDebounceTimer);
-            searchDebounceTimer = setTimeout(renderFullTable, 180);
-        }
+        function filterTableDebounced() { clearTimeout(searchDebounceTimer); searchDebounceTimer = setTimeout(renderFullTable, 180); }
 
         function applyColumnWidths() {
             const allCols = ['installer', 'objectName', 'city', 'address', 'consumer', 'position', 'model', 'serial', 'simCardNumber', 'oldMeterSerial', 'controllerSeal', 'comment', 'date'];
@@ -1765,219 +1640,205 @@
                 const savedWidth = localStorage.getItem('botstm_colWidth_' + colId);
                 if (savedWidth) {
                     const th = document.querySelector(`th[data-col="${colId}"]`);
-                    if (th) {
-                        th.style.width = savedWidth;
-                        th.style.minWidth = savedWidth;
-                        th.style.maxWidth = savedWidth;
-                    }
+                    if (th) { th.style.width = savedWidth; th.style.minWidth = savedWidth; th.style.maxWidth = savedWidth; }
                     const tds = document.querySelectorAll(`td[data-field="${colId}"]`);
-                    tds.forEach(td => {
-                        td.style.width = savedWidth;
-                        td.style.minWidth = savedWidth;
-                        td.style.maxWidth = savedWidth;
-                    });
+                    tds.forEach(td => { td.style.width = savedWidth; td.style.minWidth = savedWidth; td.style.maxWidth = savedWidth; });
                 }
             });
         }
 
         function handleInlineEditKeydown(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                saveInlineEdit();
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                cancelInlineEdit();
-            }
+            if (e.key === 'Enter') { e.preventDefault(); saveInlineEdit(); }
+            else if (e.key === 'Escape') { e.preventDefault(); cancelInlineEdit(); }
         }
 
         function generateInlineFieldHtml(field, val) {
-            const escapedVal = val.replace(/"/g, '&quot;');
+            const escapedVal = escapeHTML(String(val));
             
             if (field === 'model') {
                 let optionsHtml = NEW_METER_MODELS.map(m => `<option value="${m}">${m}</option>`).join('');
-                return `
-                    <div class="inline-input-group">
-                        <input type="text" class="inline-edit-input" data-field="model" value="${escapedVal}" onkeydown="handleInlineEditKeydown(event)">
-                        <select onchange="this.previousElementSibling.value = this.value; this.selectedIndex = 0;" title="Выбрать модель">
-                            <option value="" disabled selected>▼</option>
-                            ${optionsHtml}
-                        </select>
-                    </div>
-                `;
+                return `<div class="inline-input-group"><input type="text" class="inline-edit-input" data-field="model" value="${escapedVal}" onkeydown="handleInlineEditKeydown(event)"><select onchange="this.previousElementSibling.value = this.value; this.selectedIndex = 0;"><option value="" disabled selected>▼</option>${optionsHtml}</select></div>`;
             } else if (field === 'oldMeterModel') {
                 let optionsHtml = OLD_METER_MODELS.map(m => `<option value="${m}">${m}</option>`).join('');
-                return `
-                    <div class="inline-input-group">
-                        <input type="text" class="inline-edit-input" data-field="oldMeterModel" value="${escapedVal}" onkeydown="handleInlineEditKeydown(event)">
-                        <select onchange="this.previousElementSibling.value = this.value; this.selectedIndex = 0;" title="Выбрать модель">
-                            <option value="" disabled selected>▼</option>
-                            ${optionsHtml}
-                        </select>
-                    </div>
-                `;
+                return `<div class="inline-input-group"><input type="text" class="inline-edit-input" data-field="oldMeterModel" value="${escapedVal}" onkeydown="handleInlineEditKeydown(event)"><select onchange="this.previousElementSibling.value = this.value; this.selectedIndex = 0;"><option value="" disabled selected>▼</option>${optionsHtml}</select></div>`;
             } else if (field === 'newGasDirection') {
                 let optionsHtml = DIRECTION_OPTIONS.map(d => `<option value="${d}">${d}</option>`).join('');
-                return `
-                    <div class="inline-input-group">
-                        <input type="text" class="inline-edit-input" data-field="newGasDirection" value="${escapedVal}" onkeydown="handleInlineEditKeydown(event)">
-                        <select onchange="this.previousElementSibling.value = this.value; this.selectedIndex = 0;" title="Выбрать направление">
-                            <option value="" disabled selected>▼</option>
-                            ${optionsHtml}
-                        </select>
-                    </div>
-                `;
+                return `<div class="inline-input-group"><input type="text" class="inline-edit-input" data-field="newGasDirection" value="${escapedVal}" onkeydown="handleInlineEditKeydown(event)"><select onchange="this.previousElementSibling.value = this.value; this.selectedIndex = 0;"><option value="" disabled selected>▼</option>${optionsHtml}</select></div>`;
             } else if (field === 'uirgLocation') {
                 let optionsHtml = LOCATION_OPTIONS.map(l => `<option value="${l}">${l}</option>`).join('');
-                return `
-                    <div class="inline-input-group">
-                        <input type="text" class="inline-edit-input" data-field="uirgLocation" value="${escapedVal}" onkeydown="handleInlineEditKeydown(event)">
-                        <select onchange="this.previousElementSibling.value = this.value; this.selectedIndex = 0;" title="Выбрать расположение">
-                            <option value="" disabled selected>▼</option>
-                            ${optionsHtml}
-                        </select>
-                    </div>
-                `;
+                return `<div class="inline-input-group"><input type="text" class="inline-edit-input" data-field="uirgLocation" value="${escapedVal}" onkeydown="handleInlineEditKeydown(event)"><select onchange="this.previousElementSibling.value = this.value; this.selectedIndex = 0;"><option value="" disabled selected>▼</option>${optionsHtml}</select></div>`;
             }
-
             return `<input type="text" class="inline-edit-input" data-field="${field}" value="${escapedVal}" onkeydown="handleInlineEditKeydown(event)">`;
         }
 
-        // РЕНДЕР ТАБЛИЦЫ: Поиск по всей базе + кнопка "Только с ошибками" с группировкой дубликатов
+        function sortTable(n) {
+            if(isInlineEditing) return alert('Сортировка недоступна во время редактирования.');
+            if (currentSortCol == n) {
+                currentSortDir = currentSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSortCol = n; currentSortType = (n === 7) ? 'number' : ((n === 8) ? 'checkbox' : ((n === 22) ? 'date' : 'string')); currentSortDir = 'asc';
+            }
+            localStorage.setItem('botstm_sortCol', currentSortCol); localStorage.setItem('botstm_sortType', currentSortType); localStorage.setItem('botstm_sortDir', currentSortDir);
+            renderFullTable();
+        }
+
         function renderFullTable() {
             if (isInlineEditing) return; 
             const tbody = document.getElementById('fullTableBody');
-            
             const checkedIds = new Set(Array.from(document.querySelectorAll('.row-checkbox:checked')).map(cb => cb.value));
             const selectAllState = document.getElementById('selectAllCheckbox') ? document.getElementById('selectAllCheckbox').checked : false;
             
-            let serialCounts = {};
-            let simCounts = {};
+            let serialCounts = {}; let simCounts = {};
             dbList.forEach(item => {
-                if (item.serial && item.serial !== '-') {
-                    serialCounts[item.serial] = (serialCounts[item.serial] || 0) + 1;
-                }
-                if (item.simCardNumber && item.simCardNumber !== '-') {
-                    simCounts[item.simCardNumber] = (simCounts[item.simCardNumber] || 0) + 1;
-                }
+                if (item.serial && item.serial !== '-') serialCounts[item.serial] = (serialCounts[item.serial] || 0) + 1;
+                let sVal = (item.simCardNumber || '').trim();
+                if (sVal && sVal !== '-' && sVal.toLowerCase() !== 'нет') simCounts[sVal] = (simCounts[sVal] || 0) + 1;
             });
 
             let allItems = getAllItemsFromInventory();
             let itemColors = {};
-            
             if (inventoryV2Data) {
                 dbList.forEach(record => {
                     let queue = findMatchingItemQueue(record, allItems);
-                    if (queue && queue.length > 0) {
-                        itemColors[record.id] = queue[0].itemColor || 'var(--accent-blue)';
-                    }
+                    if (queue && queue.length > 0) itemColors[record.id] = queue[0].itemColor || 'var(--accent-blue)';
                 });
             }
 
             const searchInput = document.getElementById("searchInput");
             const filterKeyword = searchInput ? searchInput.value.toLowerCase().trim() : '';
 
-            // Фильтрация ПО ВСЕЙ БАЗЕ ДАННЫХ
             let filteredList = dbList.filter(item => {
                 let errInfo = evaluateRecordErrors(item, serialCounts, simCounts, allItems);
-
                 if (onlyIssuesFilterActive && !errInfo.hasError) return false;
+                if (onlyAnomaliesFilterActive && !errInfo.hasAnomaly) return false;
 
                 if (filterKeyword) {
                     let rowFullText = [
-                        item.installer, item.objectName, item.city, item.address,
-                        item.consumer, item.position, item.totalPower, item.model,
-                        item.serial, item.verificationDate, item.newGasDirection,
-                        item.simCardNumber, item.oldMeterModel, item.oldMeterSerial,
-                        item.oldMeterReadings, item.controllerSeal, item.uirgLocation,
-                        item.ls, item.gps, item.comment, item.date
+                        item.installer, item.objectName, item.city, item.address, item.consumer, item.position, item.totalPower, item.model,
+                        item.serial, item.verificationDate, item.newGasDirection, item.simCardNumber, item.oldMeterModel, item.oldMeterSerial,
+                        item.oldMeterReadings, item.controllerSeal, item.uirgLocation, item.ls, item.gps, item.comment, item.date
                     ].filter(Boolean).join(' ').toLowerCase();
-
                     if (!rowFullText.includes(filterKeyword)) return false;
                 }
-
                 return true;
             });
 
-            // Сортировка дубликатов рядом друг с другом при включенном фильтре ошибок
+            // Масштабное улучшение сортировки - применяем до лимита
             if (onlyIssuesFilterActive) {
                 filteredList.sort((a, b) => {
-                    // Группируем сначала по повторяющимся серийникам
                     let aSerialDup = (a.serial && a.serial !== '-' && serialCounts[a.serial] > 1) ? a.serial : '';
                     let bSerialDup = (b.serial && b.serial !== '-' && serialCounts[b.serial] > 1) ? b.serial : '';
+                    if (aSerialDup && bSerialDup) { if (aSerialDup !== bSerialDup) return aSerialDup.localeCompare(bSerialDup); return (b.timestamp || 0) - (a.timestamp || 0); }
+                    if (aSerialDup) return -1; if (bSerialDup) return 1;
 
-                    if (aSerialDup && bSerialDup) {
-                        if (aSerialDup !== bSerialDup) return aSerialDup.localeCompare(bSerialDup);
-                        return (b.timestamp || 0) - (a.timestamp || 0);
-                    }
-                    if (aSerialDup) return -1;
-                    if (bSerialDup) return 1;
-
-                    // Затем группируем по повторяющимся SIM-картам
-                    let aSimDup = (a.simCardNumber && a.simCardNumber !== '-' && simCounts[a.simCardNumber] > 1) ? a.simCardNumber : '';
-                    let bSimDup = (b.simCardNumber && b.simCardNumber !== '-' && simCounts[b.simCardNumber] > 1) ? b.simCardNumber : '';
-
-                    if (aSimDup && bSimDup) {
-                        if (aSimDup !== bSimDup) return aSimDup.localeCompare(bSimDup);
-                        return (b.timestamp || 0) - (a.timestamp || 0);
-                    }
-                    if (aSimDup) return -1;
-                    if (bSimDup) return 1;
-
+                    let sA = (a.simCardNumber || '').trim(); let sB = (b.simCardNumber || '').trim();
+                    let aSimDup = (sA && sA !== '-' && simCounts[sA] > 1) ? sA : '';
+                    let bSimDup = (sB && sB !== '-' && simCounts[sB] > 1) ? sB : '';
+                    if (aSimDup && bSimDup) { if (aSimDup !== bSimDup) return aSimDup.localeCompare(bSimDup); return (b.timestamp || 0) - (a.timestamp || 0); }
+                    if (aSimDup) return -1; if (bSimDup) return 1;
                     return 0;
                 });
+            } else if (currentSortCol) {
+                document.querySelectorAll('.sort-icon').forEach(icon => icon.innerText = '');
+                const currentIcon = document.getElementById(`sort-${currentSortCol}`);
+                if (currentIcon) currentIcon.innerText = currentSortDir === 'asc' ? '▲' : '▼';
+
+                let field = COL_MAP[currentSortCol];
+                if (field) {
+                    filteredList.sort((a, b) => {
+                        let x = String(a[field] || '').toLowerCase();
+                        let y = String(b[field] || '').toLowerCase();
+
+                        if (currentSortType === 'date') {
+                            let parseDate = str => {
+                                if (!str || str === '-') return 0;
+                                let parts = str.split(',');
+                                let dParts = (parts[0] ? parts[0].trim() : '').split('.');
+                                let tParts = (parts[1] ? parts[1].trim() : '00:00').split(':');
+                                if(dParts.length !== 3) return 0;
+                                return new Date(dParts[2], parseInt(dParts[1])-1, dParts[0], tParts[0], tParts[1]).getTime();
+                            };
+                            return currentSortDir === 'asc' ? parseDate(x) - parseDate(y) : parseDate(y) - parseDate(x);
+                        } else if (currentSortType === 'number') {
+                            let numX = parseFloat(x.replace(',','.')) || 0; let numY = parseFloat(y.replace(',','.')) || 0;
+                            return currentSortDir === 'asc' ? numX - numY : numY - numX;
+                        } else if (currentSortType === 'checkbox') {
+                            let valX = a.passport ? true : false; let valY = b.passport ? true : false;
+                            return currentSortDir === 'asc' ? (valX === valY ? 0 : valX ? -1 : 1) : (valX === valY ? 0 : valX ? 1 : -1);
+                        } else {
+                            return currentSortDir === "asc" ? x.localeCompare(y) : y.localeCompare(x);
+                        }
+                    });
+                }
             }
 
-            // Применение лимита
             const totalFound = filteredList.length;
             let displayList = filteredList;
-            if (currentRowsLimit !== 'all') {
-                displayList = filteredList.slice(0, currentRowsLimit);
+            
+            // Если включен фильтр аномалий (или ошибок), игнорируем лимит строк
+            let effectiveLimit = (onlyAnomaliesFilterActive || onlyIssuesFilterActive) ? 'all' : currentRowsLimit;
+
+            if (effectiveLimit !== 'all') {
+                displayList = filteredList.slice(0, effectiveLimit);
             }
 
             let html = '';
             displayList.forEach(item => {
                 let errInfo = evaluateRecordErrors(item, serialCounts, simCounts, allItems);
-
-                // Заливка строки убрана, только точечная подсветка проблемных ячеек
-                let rowClass = ''; 
-                let serialClass = (errInfo.serialError || (!item.serial || item.serial === '-')) ? 'error-cell' : '';
-                let simClass = errInfo.simError ? 'error-cell' : '';
+                
+                let serialClass = errInfo.serialError ? 'error-cell' : (item.serial && item.serial !== '-' ? '' : 'anomaly-cell');
+                let simClass = errInfo.simError ? 'error-cell' : (item.simCardNumber && item.simCardNumber !== '-' && String(item.simCardNumber).toLowerCase() !== 'нет' ? '' : 'anomaly-cell');
                 let powerClass = errInfo.powerError ? 'error-cell' : '';
+                let objectClass = (!item.objectName || item.objectName === '-' || item.objectName.trim()==='') ? 'anomaly-cell' : '';
+                
+                let addressClass = (!item.address || item.address === '-' || item.address.trim()==='') ? 'anomaly-cell' : '';
+                let consumerClass = (!item.consumer || item.consumer === '-' || item.consumer.trim()==='') ? 'anomaly-cell' : '';
+                
+                // Должность подсвечиваем только если это не частный дом и ячейка пустая
+                let objNameNorm = (item.objectName || '').trim().toLowerCase();
+                let positionClass = '';
+                if (objNameNorm !== 'частный дом' && (!item.position || item.position === '-' || item.position.trim()==='')) {
+                    positionClass = 'anomaly-cell';
+                }
+
+                let oldMeterModelClass = (!item.oldMeterModel || item.oldMeterModel === '-' || item.oldMeterModel.trim()==='') ? 'anomaly-cell' : '';
+                let oldMeterSerialClass = (!item.oldMeterSerial || item.oldMeterSerial === '-' || item.oldMeterSerial.trim()==='') ? 'anomaly-cell' : '';
+                let oldMeterReadingsClass = (!item.oldMeterReadings || item.oldMeterReadings === '-' || item.oldMeterReadings.trim()==='') ? 'anomaly-cell' : '';
 
                 let isChecked = checkedIds.has(item.id) ? 'checked' : '';
                 let modelColor = itemColors[item.id] || 'var(--accent-blue)';
 
-                let visibleErrorBadge = errInfo.hasError 
-                    ? `<div class="row-error-badge">⚠️ ${errInfo.errorMessages.join(' | ')}</div>` 
-                    : '';
+                let visibleErrorBadge = '';
+                if (errInfo.hasError) visibleErrorBadge += `<div class="row-error-badge">⚠️ ${errInfo.errorMessages.join(' | ')}</div>`;
+                if (errInfo.hasAnomaly) visibleErrorBadge += `<div class="row-anomaly-badge">❓ ${errInfo.anomalyMessages.join(' | ')}</div>`;
 
-                html += `<tr class="${rowClass}" title="${errInfo.errorMessages.join('; ')}" ondblclick="enableRowEdit(this, '${item.id}', event)">
+                html += `<tr title="${errInfo.errorMessages.concat(errInfo.anomalyMessages).join('; ')}" ondblclick="enableRowEdit(this, '${item.id}', event)">
                     <td class="text-center"><input type="checkbox" class="row-checkbox" value="${item.id}" ${isChecked} onclick="handleRowCheckboxClick(event, this)"></td>
-                    <td data-field="installer"><b>${item.installer || '-'}</b></td>
-                    <td data-field="objectName">
-                        <div><b class="object-title-text">${item.objectName || '-'}</b></div>
+                    <td data-field="installer"><b>${escapeHTML(item.installer || '-')}</b></td>
+                    <td class="${objectClass}" data-field="objectName">
+                        <div><b class="object-title-text">${escapeHTML(item.objectName || '-')}</b></div>
                         ${visibleErrorBadge}
                     </td>
-                    <td data-field="city">${item.city || '-'}</td>
-                    <td data-field="address" title="${item.address || '-'}">${item.address || '-'}</td>
-                    <td data-field="consumer">${item.consumer || '-'}</td>
-                    <td data-field="position">${item.position || '-'}</td>
-                    <td class="${powerClass}" data-field="totalPower">${item.totalPower || '-'}</td>
+                    <td data-field="city">${escapeHTML(item.city || '-')}</td>
+                    <td class="${addressClass}" data-field="address" title="${escapeHTML(item.address || '-')}">${escapeHTML(item.address || '-')}</td>
+                    <td class="${consumerClass}" data-field="consumer">${escapeHTML(item.consumer || '-')}</td>
+                    <td class="${positionClass}" data-field="position">${escapeHTML(item.position || '-')}</td>
+                    <td class="${powerClass}" data-field="totalPower">${escapeHTML(item.totalPower || '-')}</td>
                     <td class="text-center"><input type="checkbox" class="passport-checkbox" onchange="updatePassport('${item.id}', this.checked)" ${item.passport ? 'checked' : ''}></td>
-                    <td data-field="model"><b style="color:${modelColor};">${item.model || '-'}</b></td>
-                    <td class="${serialClass}" data-field="serial">${item.serial || '-'}</td>
-                    <td data-field="verificationDate">${item.verificationDate || '-'}</td>
-                    <td data-field="newGasDirection">${item.newGasDirection || '-'}</td>
-                    <td class="${simClass}" data-field="simCardNumber">${item.simCardNumber || '-'}</td>
-                    <td data-field="oldMeterModel">${item.oldMeterModel || '-'}</td>
-                    <td data-field="oldMeterSerial">${item.oldMeterSerial || '-'}</td>
-                    <td data-field="oldMeterReadings">${item.oldMeterReadings || '-'}</td>
-                    <td data-field="controllerSeal">${item.controllerSeal || '-'}</td>
-                    <td data-field="uirgLocation">${item.uirgLocation || '-'}</td>
-                    <td data-field="ls">${item.ls || '-'}</td>
-                    <td data-field="gps">${item.gps || '-'}</td>
-                    <td data-field="comment">${item.comment || '-'}</td>
-                    <td data-field="date">${item.date || '-'}</td>
+                    <td data-field="model"><b style="color:${modelColor};">${escapeHTML(item.model || '-')}</b></td>
+                    <td class="${serialClass}" data-field="serial">${escapeHTML(item.serial || '-')}</td>
+                    <td data-field="verificationDate">${escapeHTML(item.verificationDate || '-')}</td>
+                    <td data-field="newGasDirection">${escapeHTML(item.newGasDirection || '-')}</td>
+                    <td class="${simClass}" data-field="simCardNumber">${escapeHTML(item.simCardNumber || '-')}</td>
+                    <td class="${oldMeterModelClass}" data-field="oldMeterModel">${escapeHTML(item.oldMeterModel || '-')}</td>
+                    <td class="${oldMeterSerialClass}" data-field="oldMeterSerial">${escapeHTML(item.oldMeterSerial || '-')}</td>
+                    <td class="${oldMeterReadingsClass}" data-field="oldMeterReadings">${escapeHTML(item.oldMeterReadings || '-')}</td>
+                    <td data-field="controllerSeal">${escapeHTML(item.controllerSeal || '-')}</td>
+                    <td data-field="uirgLocation">${escapeHTML(item.uirgLocation || '-')}</td>
+                    <td data-field="ls">${escapeHTML(item.ls || '-')}</td>
+                    <td data-field="gps">${escapeHTML(item.gps || '-')}</td>
+                    <td data-field="comment">${escapeHTML(item.comment || '-')}</td>
+                    <td data-field="date">${escapeHTML(item.date || '-')}</td>
                     <td class="text-center" style="display:flex; gap: 4px; justify-content:center; align-items:center;">
                         <button class="btn btn-outline btn-small edit-single-btn" onclick="editRecord('${item.id}')" title="Редактировать">✎</button>
                         <button class="btn btn-danger btn-small del-single-btn" onclick="deleteRecord('${item.id}', event)" title="Удалить">✕</button>
@@ -1986,28 +1847,20 @@
             });
 
             if (html === '') html = '<tr><td colspan="24" style="text-align:center; padding:24px; color:var(--text-muted);">Ничего не найдено</td></tr>';
-            
             tbody.innerHTML = html;
             
             const mainCheckbox = document.getElementById('selectAllCheckbox');
             if (mainCheckbox) mainCheckbox.checked = selectAllState;
             
-            applyColumnWidths();
-            initResizers();
+            applyColumnWidths(); initResizers();
 
             const infoBar = document.getElementById('tableInfoBar');
             if (infoBar) {
                 let limitLabel = currentRowsLimit === 'all' ? 'Все' : currentRowsLimit;
-                infoBar.innerText = `Найдено по всей базе: ${totalFound} шт. (Отображается на экране: ${displayList.length} | Лимит: ${limitLabel} | Всего в базе: ${dbList.length})`;
-            }
-
-            const savedSortCol = localStorage.getItem('botstm_sortCol');
-            const savedSortType = localStorage.getItem('botstm_sortType');
-            const savedSortDir = localStorage.getItem('botstm_sortDir');
-
-            // Не перезаписываем группировку дубликатов обычной сортировкой
-            if (!onlyIssuesFilterActive && savedSortCol !== null && savedSortDir !== null) {
-                sortTable(parseInt(savedSortCol), savedSortType || 'string', savedSortDir);
+                if (onlyAnomaliesFilterActive || onlyIssuesFilterActive) {
+                    limitLabel = 'Сброшен (Фильтр)';
+                }
+                infoBar.innerText = `Найдено: ${totalFound} шт. (На экране: ${displayList.length} | Лимит: ${limitLabel} | Всего: ${dbList.length})`;
             }
         }
 
@@ -2022,53 +1875,26 @@
                 document.getElementById('btnInlineCancel').style.display = 'inline-block';
                 isInlineEditing = true;
             }
-
             tr.classList.add('editing-row');
             
-            // Находим оригинальную запись из памяти, чтобы избежать захвата текста ошибки
             const originalItem = dbList.find(item => item.id === id);
-
             let fields = Array.from(tr.querySelectorAll('td[data-field]'));
             let widths = fields.map(td => td.getBoundingClientRect().width);
             
             fields.forEach((td, index) => {
                 let field = td.getAttribute('data-field');
                 let val = '';
-
-                if (originalItem && originalItem[field] !== undefined) {
-                    val = originalItem[field];
-                } else if (field === 'objectName') {
-                    const titleEl = td.querySelector('.object-title-text');
-                    val = titleEl ? titleEl.innerText : td.innerText;
-                } else {
-                    val = td.innerText;
-                }
+                if (originalItem && originalItem[field] !== undefined) val = originalItem[field];
+                else { const titleEl = td.querySelector('.object-title-text'); val = titleEl ? titleEl.innerText : td.innerText; }
 
                 if (val === '-') val = '';
                 let w = widths[index];
-                
-                td.style.width = w + 'px';
-                td.style.minWidth = w + 'px';
-                td.style.maxWidth = w + 'px';
-                
+                td.style.width = w + 'px'; td.style.minWidth = w + 'px'; td.style.maxWidth = w + 'px';
                 td.innerHTML = generateInlineFieldHtml(field, val);
             });
             
-            const editBtn = tr.querySelector('.edit-single-btn');
-            if (editBtn) editBtn.style.display = 'none';
-            const delBtn = tr.querySelector('.del-single-btn');
-            if (delBtn) delBtn.style.display = 'none';
-            
-            if (event && event.target && event.target.tagName === 'TD' && event.target.hasAttribute('data-field')) {
-                let field = event.target.getAttribute('data-field');
-                let input = tr.querySelector(`input[data-field="${field}"]`);
-                if (input) {
-                    input.focus();
-                    let v = input.value;
-                    input.value = '';
-                    input.value = v; 
-                }
-            }
+            const editBtn = tr.querySelector('.edit-single-btn'); if (editBtn) editBtn.style.display = 'none';
+            const delBtn = tr.querySelector('.del-single-btn'); if (delBtn) delBtn.style.display = 'none';
         }
 
         function toggleAllCheckboxes() {
@@ -2079,91 +1905,58 @@
 
         function toggleInlineEdit() {
             const checkboxes = document.querySelectorAll('.row-checkbox:checked');
-            if (checkboxes.length === 0) return alert('Сначала выберите строки для редактирования, отметив их галочками.');
-
+            if (checkboxes.length === 0) return alert('Выберите строки.');
             if (!isInlineEditing) {
                 let rowsToEdit = Array.from(checkboxes).map(cb => cb.closest('tr'));
-                let measurements = rowsToEdit.map(tr => {
-                    return Array.from(tr.querySelectorAll('td[data-field]')).map(td => td.getBoundingClientRect().width);
-                });
+                let measurements = rowsToEdit.map(tr => Array.from(tr.querySelectorAll('td[data-field]')).map(td => td.getBoundingClientRect().width));
 
                 rowsToEdit.forEach((tr, rowIndex) => {
                     tr.classList.add('editing-row');
-                    
                     let id = tr.querySelector('.row-checkbox').value;
                     let originalItem = dbList.find(item => item.id === id);
-
                     let fields = Array.from(tr.querySelectorAll('td[data-field]'));
                     let widths = measurements[rowIndex];
 
                     fields.forEach((td, index) => {
                         let field = td.getAttribute('data-field');
                         let val = '';
-
-                        if (originalItem && originalItem[field] !== undefined) {
-                            val = originalItem[field];
-                        } else if (field === 'objectName') {
-                            const titleEl = td.querySelector('.object-title-text');
-                            val = titleEl ? titleEl.innerText : td.innerText;
-                        } else {
-                            val = td.innerText;
-                        }
-
+                        if (originalItem && originalItem[field] !== undefined) val = originalItem[field];
+                        else { const titleEl = td.querySelector('.object-title-text'); val = titleEl ? titleEl.innerText : td.innerText; }
+                        
                         if (val === '-') val = '';
                         let w = widths[index];
-                        
-                        td.style.width = w + 'px';
-                        td.style.minWidth = w + 'px';
-                        td.style.maxWidth = w + 'px';
-                        
+                        td.style.width = w + 'px'; td.style.minWidth = w + 'px'; td.style.maxWidth = w + 'px';
                         td.innerHTML = generateInlineFieldHtml(field, val);
                     });
                     
-                    const editBtn = tr.querySelector('.edit-single-btn');
-                    if (editBtn) editBtn.style.display = 'none';
-                    const delBtn = tr.querySelector('.del-single-btn');
-                    if (delBtn) delBtn.style.display = 'none';
+                    const editBtn = tr.querySelector('.edit-single-btn'); if (editBtn) editBtn.style.display = 'none';
+                    const delBtn = tr.querySelector('.del-single-btn'); if (delBtn) delBtn.style.display = 'none';
                 });
-                
-                document.getElementById('btnInlineEdit').style.display = 'none';
-                document.getElementById('btnInlineSave').style.display = 'inline-block';
-                document.getElementById('btnInlineCancel').style.display = 'inline-block';
+                document.getElementById('btnInlineEdit').style.display = 'none'; document.getElementById('btnInlineSave').style.display = 'inline-block'; document.getElementById('btnInlineCancel').style.display = 'inline-block';
                 isInlineEditing = true;
             }
         }
 
         function cancelInlineEdit() {
             isInlineEditing = false;
-            document.getElementById('btnInlineEdit').style.display = 'inline-block';
-            document.getElementById('btnInlineSave').style.display = 'none';
-            document.getElementById('btnInlineCancel').style.display = 'none';
+            document.getElementById('btnInlineEdit').style.display = 'inline-block'; document.getElementById('btnInlineSave').style.display = 'none'; document.getElementById('btnInlineCancel').style.display = 'none';
             renderFullTable(); 
         }
 
         function saveInlineEdit() {
             const rows = document.querySelectorAll('tr.editing-row');
             let batchUpdates = {};
-            
             rows.forEach(tr => {
                 let id = tr.querySelector('.row-checkbox').value;
                 let inputs = tr.querySelectorAll('.inline-edit-input');
-                
-                inputs.forEach(inp => { 
-                    batchUpdates[`${id}/${inp.getAttribute('data-field')}`] = inp.value.trim();
-                });
+                inputs.forEach(inp => { batchUpdates[`${id}/${inp.getAttribute('data-field')}`] = inp.value.trim(); });
             });
-
             if (Object.keys(batchUpdates).length === 0) return cancelInlineEdit();
-            
             dbRef.update(batchUpdates).then(() => {
                 isInlineEditing = false;
-                document.getElementById('btnInlineEdit').style.display = 'inline-block';
-                document.getElementById('btnInlineSave').style.display = 'none';
-                document.getElementById('btnInlineCancel').style.display = 'none';
+                document.getElementById('btnInlineEdit').style.display = 'inline-block'; document.getElementById('btnInlineSave').style.display = 'none'; document.getElementById('btnInlineCancel').style.display = 'none';
                 renderFullTable(); 
-            }).catch(e => {
-                alert('Ошибка: ' + e.message);
-            });
+            }).catch(e => alert('Ошибка: ' + e.message));
         }
 
         function editRecord(id) {
@@ -2174,6 +1967,7 @@
             ['objectName', 'address', 'city', 'uirgLocation', 'installer', 'model', 'serial', 'verificationDate', 'position', 'consumer', 'ls', 'totalPower', 'controllerSeal', 'oldMeterModel', 'oldMeterSerial', 'oldMeterReadings', 'newGasDirection', 'simCardNumber', 'gps', 'comment', 'date'].forEach(field => {
                 document.getElementById('e_' + field).value = item[field] || '';
             });
+            document.getElementById('e_passport').checked = item.passport ? true : false;
             
             document.getElementById('e_recordId').value = id;
             document.getElementById('deleteBtn').style.display = 'inline-block';
@@ -2187,6 +1981,7 @@
             ['objectName', 'address', 'city', 'uirgLocation', 'installer', 'model', 'serial', 'verificationDate', 'position', 'consumer', 'ls', 'totalPower', 'controllerSeal', 'oldMeterModel', 'oldMeterSerial', 'oldMeterReadings', 'newGasDirection', 'simCardNumber', 'gps', 'comment', 'date'].forEach(field => {
                 data[field] = document.getElementById('e_' + field).value.trim();
             });
+            data.passport = document.getElementById('e_passport').checked;
             
             if (id) {
                 dbRef.child(id).update(data).then(() => closeModal('editModal')).catch(e => alert(e.message));
@@ -2202,88 +1997,22 @@
             document.getElementById('deleteBtn').style.display = 'none';
             document.getElementById('editTitle').innerText = 'Новая установка';
             document.querySelectorAll('#editForm input[type="text"]').forEach(inp => inp.value = '');
+            document.getElementById('e_passport').checked = false;
             openModal('editModal');
         }
 
         function deleteRecordFromEditModal() {
             const id = document.getElementById('e_recordId').value;
-            if (id && confirm('Вы уверены, что хотите удалить эту запись? Действие необратимо.')) {
+            if (id && confirm('Удалить эту запись?')) {
                 dbRef.child(id).remove().then(() => closeModal('editModal')).catch(e => alert(e.message));
             }
         }
 
-        function sortTable(n, type = 'string', forceDir = null) {
-            if(isInlineEditing) return alert('Сортировка недоступна во время редактирования.');
-            
-            const table = document.getElementById("dataTable");
-            const tbody = table.querySelector('tbody');
-            const rows = Array.from(tbody.querySelectorAll('tr'));
-            if (rows.length === 0) return;
-
-            document.querySelectorAll('.sort-icon').forEach(icon => icon.innerText = '');
-
-            const dir = forceDir ? forceDir : (sortDirection[n] === "asc" ? "desc" : "asc");
-            sortDirection[n] = dir;
-            
-            localStorage.setItem('botstm_sortCol', n);
-            localStorage.setItem('botstm_sortType', type);
-            localStorage.setItem('botstm_sortDir', dir);
-            
-            const currentIcon = document.getElementById(`sort-${n}`);
-            if (currentIcon) currentIcon.innerText = dir === 'asc' ? '▲' : '▼';
-
-            rows.sort((a, b) => {
-                let cellA = a.querySelectorAll('td')[n];
-                let cellB = b.querySelectorAll('td')[n];
-
-                let x = '';
-                let y = '';
-
-                if (cellA) {
-                    let titleEl = cellA.querySelector('.object-title-text');
-                    x = titleEl ? titleEl.innerText.toLowerCase() : cellA.innerText.toLowerCase();
-                }
-                if (cellB) {
-                    let titleEl = cellB.querySelector('.object-title-text');
-                    y = titleEl ? titleEl.innerText.toLowerCase() : cellB.innerText.toLowerCase();
-                }
-
-                if (type === 'date') {
-                    let parseDate = str => {
-                        if (!str || str === '-') return 0;
-                        let parts = str.split(',');
-                        let dParts = (parts[0] ? parts[0].trim() : '').split('.');
-                        let tParts = (parts[1] ? parts[1].trim() : '00:00').split(':');
-                        if(dParts.length !== 3) return 0;
-                        return new Date(dParts[2], parseInt(dParts[1])-1, dParts[0], tParts[0], tParts[1]).getTime();
-                    };
-                    return dir === 'asc' ? parseDate(x) - parseDate(y) : parseDate(y) - parseDate(x);
-                } else if (type === 'number') {
-                    let numX = parseFloat(x.replace(',','.')) || 0;
-                    let numY = parseFloat(y.replace(',','.')) || 0;
-                    return dir === 'asc' ? numX - numY : numY - numX;
-                } else if (type === 'checkbox') {
-                    let cbX = cellA ? cellA.querySelector('input[type="checkbox"]') : null;
-                    let cbY = cellB ? cellB.querySelector('input[type="checkbox"]') : null;
-                    let valX = cbX ? cbX.checked : false;
-                    let valY = cbY ? cbY.checked : false;
-                    return dir === 'asc' ? (valX === valY ? 0 : valX ? -1 : 1) : (valX === valY ? 0 : valX ? 1 : -1);
-                } else {
-                    return dir === "asc" ? x.localeCompare(y) : y.localeCompare(x);
-                }
-            });
-            rows.forEach(row => tbody.appendChild(row));
-        }
-
         function splitIntoRecords(text) {
-            const lines = text.split('\n');
-            const records = [];
-            let currentBlock = [];
+            const lines = text.split('\n'); const records = []; let currentBlock = [];
             const startPatterns = [ /^\*\*\d+\.\s*message/i, /^Отчет о проделанных работах/i, /^•\s*Объект:/i, /^Объект:/i, /^Наименование объекта:/i ];
-
             for (let line of lines) {
-                const trimmed = line.trim();
-                let isStart = false;
+                const trimmed = line.trim(); let isStart = false;
                 for (let pattern of startPatterns) { if (pattern.test(trimmed)) { isStart = true; break; } }
                 if (isStart && currentBlock.length > 0) { records.push(currentBlock.join('\n')); currentBlock = []; }
                 currentBlock.push(line);
@@ -2293,18 +2022,13 @@
         }
 
         function extractRecord(block) {
-            const lines = block.split('\n').map(l => l.trim());
-            const record = {};
+            const lines = block.split('\n').map(l => l.trim()); const record = {};
             const fieldSynonyms = {
                 objectName: ['Объект', 'Наименование объекта'], address: ['Адрес', 'Адрес объекта'], city: ['Город', 'Населенный пункт', 'Город/район'],
-                installer: ['Монтажник', 'ФИО монтажника'], consumer: ['Потребитель', 'ФИО потребителя'],
-                position: ['Должность'], ls: ['Лицевой счет', 'ЛС'],
-                model: ['Модель нового счетчика', 'Модель нового', 'Модель'], 
-                serial: ['Серийный № нового счетчика', '№ нового', 'Серийный номер', 'Серийный №', '№'],
-                verificationDate: ['Дата поверки'],
-                gps: ['GPS', 'Координаты GPS'], comment: ['Комментарий', 'Коммент', 'Прим.', 'Примечание'], date: ['Дата', 'Дата/время генерации'],
-                controllerSeal: ['Пломба', 'Пломба контролера'], oldMeterModel: ['Модель старого'],
-                oldMeterSerial: ['№ старого'], oldMeterReadings: ['Показания старого'],
+                installer: ['Монтажник', 'ФИО монтажника'], consumer: ['Потребитель', 'ФИО потребителя'], position: ['Должность'], ls: ['Лицевой счет', 'ЛС'],
+                model: ['Модель нового счетчика', 'Модель нового', 'Модель'], serial: ['Серийный № нового счетчика', '№ нового', 'Серийный номер', 'Серийный №', '№'],
+                verificationDate: ['Дата поверки'], gps: ['GPS', 'Координаты GPS'], comment: ['Комментарий', 'Коммент', 'Прим.', 'Примечание'], date: ['Дата', 'Дата/время генерации'],
+                controllerSeal: ['Пломба', 'Пломба контролера'], oldMeterModel: ['Модель старого'], oldMeterSerial: ['№ старого'], oldMeterReadings: ['Показания старого'],
                 newGasDirection: ['Направление', 'Направление нового'], simCardNumber: ['SIM', '№ SIM', 'SIM-карта'],
                 uirgLocation: ['Расположение', 'Расположение счетчика'], totalPower: ['Мощность']
             };
@@ -2323,7 +2047,7 @@
                 const dMatch = block.match(/(\d{2}\.\d{2}\.\d{4}(?:,\s*\d{2}:\d{2})?)/);
                 if (dMatch) record.date = dMatch[1];
             }
-            if (record.serial) record.serial = record.serial.split(';')[0].trim().replace(/\D/g, '');
+            if (record.serial) record.serial = record.serial.split(';')[0].trim().replace(/[^A-Za-zА-Яа-я0-9-]/g, '');
             
             for (let key in record) { if (!record[key]) delete record[key]; }
             return (!record.objectName && !record.installer) ? null : record;
@@ -2332,9 +2056,7 @@
         function importFromText() {
             const text = document.getElementById('importTextArea').value;
             if (!text.trim()) return alert('Вставьте текст.');
-
-            const status = document.getElementById('importStatus');
-            status.innerHTML = 'Обработка...';
+            const status = document.getElementById('importStatus'); status.innerHTML = 'Обработка...';
             
             const blocks = splitIntoRecords(text);
             const extracted = blocks.map(extractRecord).filter(Boolean);
@@ -2348,86 +2070,54 @@
             });
 
             let updates = {};
-            unique.forEach(rec => {
-                rec.timestamp = Date.now();
-                let newKey = dbRef.push().key; 
-                updates[newKey] = rec;
-                imported++;
-            });
+            unique.forEach(rec => { rec.timestamp = Date.now(); let newKey = dbRef.push().key; updates[newKey] = rec; imported++; });
 
             if (Object.keys(updates).length > 0) {
                 dbRef.update(updates).then(() => {
-                    status.innerHTML = `Успешно загружено: ${imported} из ${extracted.length} (пропущено дубликатов: ${extracted.length - unique.length})`;
-                    status.style.color = 'var(--success-color)';
-                    setTimeout(() => closeModal('importModal'), 3000);
-                }).catch(err => {
-                    status.innerHTML = 'Ошибка: ' + err.message;
-                    status.style.color = 'var(--danger-color)';
-                });
+                    status.innerHTML = `Загружено: ${imported} (пропущено дублей: ${extracted.length - unique.length})`;
+                    status.style.color = 'var(--success-color)'; setTimeout(() => closeModal('importModal'), 3000);
+                }).catch(err => { status.innerHTML = 'Ошибка: ' + err.message; status.style.color = 'var(--danger-color)'; });
             } else {
-                status.innerHTML = 'Нет новых уникальных записей для загрузки.';
-                setTimeout(() => closeModal('importModal'), 2000);
+                status.innerHTML = 'Нет новых уникальных записей.'; setTimeout(() => closeModal('importModal'), 2000);
             }
         }
 
         function loadFileContent(e) {
-            const reader = new FileReader();
-            reader.onload = ev => document.getElementById('importTextArea').value = ev.target.result;
-            if(e.target.files[0]) reader.readAsText(e.target.files[0], 'UTF-8');
-            e.target.value = '';
+            const reader = new FileReader(); reader.onload = ev => document.getElementById('importTextArea').value = ev.target.result;
+            if(e.target.files[0]) reader.readAsText(e.target.files[0], 'UTF-8'); e.target.value = '';
         }
         function openImportModal() { document.getElementById('importTextArea').value = ''; document.getElementById('importStatus').innerHTML = ''; openModal('importModal'); }
 
-        function openExcelImportModal() {
-            document.getElementById('importExcelFileInput').value = '';
-            document.getElementById('excelImportStatus').innerHTML = '';
-            openModal('importExcelModal');
-        }
+        function openExcelImportModal() { document.getElementById('importExcelFileInput').value = ''; document.getElementById('excelImportStatus').innerHTML = ''; openModal('importExcelModal'); }
 
         function processExcelImport(e) {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            const status = document.getElementById('excelImportStatus');
-            status.innerHTML = 'Чтение файла...';
-            status.style.color = 'var(--text-primary)';
+            const file = e.target.files[0]; if (!file) return;
+            const status = document.getElementById('excelImportStatus'); status.innerHTML = 'Чтение файла...'; status.style.color = 'var(--text-primary)';
 
             const reader = new FileReader();
             reader.onload = function(evt) {
                 try {
-                    const data = evt.target.result;
-                    const workbook = XLSX.read(data, {type: 'array'});
-                    const firstSheetName = workbook.SheetNames[0];
-                    const worksheet = workbook.Sheets[firstSheetName];
-                    const json = XLSX.utils.sheet_to_json(worksheet, {defval: "", raw: false});
-
+                    const workbook = XLSX.read(evt.target.result, {type: 'array'});
+                    const json = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {defval: "", raw: false});
                     status.innerHTML = `Обработка ${json.length} строк... Пожалуйста, подождите.`;
 
-                    let updates = {};
-                    let updated = 0;
-                    let added = 0;
-
+                    let updates = {}; let updated = 0; let added = 0;
                     const excelMap = {
-                        'Монтажник': 'installer', 'Объект': 'objectName', 'Город/район': 'city', 'Город': 'city', 'Адрес': 'address',
-                        'Потребитель': 'consumer', 'Должность': 'position', 'Мощн.': 'totalPower',
-                        'Модель': 'model', '№': 'serial', 'Дата поверки': 'verificationDate', 'Направл.': 'newGasDirection',
-                        'SIM': 'simCardNumber', 'Ст. модель': 'oldMeterModel', 'Ст. №': 'oldMeterSerial',
-                        'Ст. показ.': 'oldMeterReadings', 'Пломба': 'controllerSeal', 'Расположение': 'uirgLocation',
-                        'ЛС': 'ls', 'GPRS': 'gps', 'Комментарий': 'comment'
+                        'Монтажник': 'installer', 'Объект': 'objectName', 'Город/район': 'city', 'Город': 'city', 'Адрес': 'address', 'Потребитель': 'consumer', 'Должность': 'position', 'Мощн.': 'totalPower', 'Модель': 'model', '№': 'serial', 'Дата поверки': 'verificationDate', 'Направл.': 'newGasDirection', 'SIM': 'simCardNumber', 'Ст. модель': 'oldMeterModel', 'Ст. №': 'oldMeterSerial', 'Ст. показ.': 'oldMeterReadings', 'Пломба': 'controllerSeal', 'Расположение': 'uirgLocation', 'ЛС': 'ls', 'GPRS': 'gps', 'Комментарий': 'comment'
                     };
 
-                    const serialMap = {};
-                    dbList.forEach(i => { if (i.serial && i.serial !== '-') serialMap[i.serial] = i; });
+                    const serialMap = {}; dbList.forEach(i => { if (i.serial && i.serial !== '-') serialMap[i.serial] = i; });
+                    const newSerialsInExcel = {}; 
 
                     json.forEach(row => {
                         let recordId = row['ID_Системы'];
                         let serialVal = row['№'] ? String(row['№']).trim() : null;
                         
-                        let isPassport = false;
-                        let pVal = String(row['Паспорт']).toLowerCase().trim();
-                        if (pVal === 'да' || pVal === '1' || pVal === 'true' || pVal === '+') isPassport = true;
-
-                        let updateData = { passport: isPassport };
+                        let updateData = {};
+                        if (row.hasOwnProperty('Паспорт')) {
+                            let pVal = String(row['Паспорт']).toLowerCase().trim();
+                            updateData.passport = (pVal === 'да' || pVal === '1' || pVal === 'true' || pVal === '+');
+                        }
                         
                         for (let excelKey in excelMap) {
                             if (row.hasOwnProperty(excelKey)) {
@@ -2437,39 +2127,25 @@
                         }
 
                         if (row.hasOwnProperty('Дата')) {
-                            let valD = String(row['Дата']).trim();
-                            let valT = row.hasOwnProperty('Время') ? String(row['Время']).trim() : '';
-                            
-                            if (valD === '-') valD = '';
-                            if (valT === '-') valT = '';
-                            
-                            if (valD) {
-                                updateData['date'] = valT ? `${valD}, ${valT}` : valD;
-                            } else {
-                                updateData['date'] = '';
-                            }
+                            let valD = String(row['Дата']).trim(); let valT = row.hasOwnProperty('Время') ? String(row['Время']).trim() : '';
+                            if (valD === '-') valD = ''; if (valT === '-') valT = '';
+                            updateData['date'] = valD ? (valT ? `${valD}, ${valT}` : valD) : '';
                         }
 
-                        let existingItemById = dbList.find(i => i.id === recordId);
-                        let existingItemBySerial = serialVal ? serialMap[serialVal] : null;
                         let targetId = null;
-
-                        if (existingItemById) {
-                            targetId = existingItemById.id;
-                        } else if (existingItemBySerial) {
-                            targetId = existingItemBySerial.id;
-                        }
+                        if (recordId && dbList.find(i => i.id === recordId)) targetId = recordId;
+                        else if (serialVal && serialMap[serialVal]) targetId = serialMap[serialVal].id;
+                        else if (serialVal && newSerialsInExcel[serialVal]) targetId = newSerialsInExcel[serialVal];
 
                         if (targetId) {
-                            for (let key in updateData) {
-                                updates[`${targetId}/${key}`] = updateData[key];
-                            }
+                            for (let key in updateData) updates[`${targetId}/${key}`] = updateData[key];
                             updated++;
                         } else {
                             if(Object.keys(updateData).some(k => updateData[k] && updateData[k] !== '' && k !== 'passport')) {
                                 updateData.timestamp = Date.now();
                                 let newKey = dbRef.push().key; 
                                 updates[newKey] = updateData;
+                                if (serialVal) newSerialsInExcel[serialVal] = newKey; 
                                 added++;
                             }
                         }
@@ -2478,175 +2154,62 @@
                     if (Object.keys(updates).length > 0) {
                         dbRef.update(updates).then(() => {
                             status.innerHTML = `Успешно! Обновлено: ${updated}, Добавлено новых: ${added}.`;
-                            status.style.color = 'var(--success-color)';
-                            setTimeout(() => closeModal('importExcelModal'), 4000);
-                        }).catch(err => {
-                            status.innerHTML = 'Ошибка загрузки в базу: ' + err.message;
-                            status.style.color = 'var(--danger-color)';
-                        });
-                    } else {
-                        status.innerHTML = 'Нет изменений для загрузки.';
-                        setTimeout(() => closeModal('importExcelModal'), 2000);
-                    }
-
-                } catch (error) {
-                    status.innerHTML = 'Ошибка обработки файла: Убедитесь что загружаете правильный Excel файл.';
-                    status.style.color = 'var(--danger-color)';
-                }
+                            status.style.color = 'var(--success-color)'; setTimeout(() => closeModal('importExcelModal'), 4000);
+                        }).catch(err => { status.innerHTML = 'Ошибка: ' + err.message; status.style.color = 'var(--danger-color)'; });
+                    } else { status.innerHTML = 'Нет изменений.'; setTimeout(() => closeModal('importExcelModal'), 2000); }
+                } catch (error) { status.innerHTML = 'Ошибка обработки файла.'; status.style.color = 'var(--danger-color)'; }
             };
             reader.readAsArrayBuffer(file);
         }
 
         function exportToExcel() {
             if (dbList.length === 0) return alert("Нет данных");
-            
             const headers = ['ID_Системы', 'Монтажник', 'Объект', 'Город/район', 'Адрес', 'Потребитель', 'Должность', 'Мощн.', 'Паспорт', 'Модель', '№', 'Дата поверки', 'Направл.', 'SIM', 'Ст. модель', 'Ст. №', 'Ст. показ.', 'Пломба', 'Расположение', 'ЛС', 'GPRS', 'Комментарий', 'Дата', 'Время'];
             let data = [headers];
             
             dbList.forEach(item => {
-                let datePart = '';
-                let timePart = '';
+                let datePart = ''; let timePart = '';
+                if (item.date) { let parts = item.date.split(','); datePart = parts[0] ? parts[0].trim() : ''; timePart = parts[1] ? parts[1].trim() : ''; }
                 
-                if (item.date) {
-                    let parts = item.date.split(',');
-                    datePart = parts[0] ? parts[0].trim() : '';
-                    timePart = parts[1] ? parts[1].trim() : '';
-                }
-                
-                let row = [
-                    item.id,
-                    item.installer || '',
-                    item.objectName || '',
-                    item.city || '',
-                    item.address || '',
-                    item.consumer || '',
-                    item.position || '',
-                    item.totalPower || '',
-                    item.passport ? 'Да' : 'Нет',
-                    item.model || '',
-                    item.serial || '',
-                    item.verificationDate || '',
-                    item.newGasDirection || '',
-                    item.simCardNumber || '',
-                    item.oldMeterModel || '',
-                    item.oldMeterSerial || '',
-                    item.oldMeterReadings || '',
-                    item.controllerSeal || '',
-                    item.uirgLocation || '',
-                    item.ls || '',
-                    item.gps || '',
-                    item.comment || '',
-                    datePart,
-                    timePart
-                ];
-                data.push(row);
+                data.push([
+                    item.id, item.installer || '', item.objectName || '', item.city || '', item.address || '', item.consumer || '', item.position || '',
+                    item.totalPower || '', item.passport ? 'Да' : 'Нет', item.model || '', item.serial || '', item.verificationDate || '', item.newGasDirection || '',
+                    item.simCardNumber || '', item.oldMeterModel || '', item.oldMeterSerial || '', item.oldMeterReadings || '', item.controllerSeal || '', item.uirgLocation || '',
+                    item.ls || '', item.gps || '', item.comment || '', datePart, timePart
+                ]);
             });
             
-            const ws = XLSX.utils.aoa_to_sheet(data);
-            ws['!cols'] = [{wch: 25}, {wch: 20}, {wch: 30}, {wch: 20}, {wch: 35}, {wch: 25}]; 
-
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Установки");
-            
+            const ws = XLSX.utils.aoa_to_sheet(data); ws['!cols'] = [{wch: 25}, {wch: 20}, {wch: 30}, {wch: 20}, {wch: 35}, {wch: 25}]; 
+            const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Установки");
             XLSX.writeFile(wb, `Otchet_${new Date().toISOString().slice(0,10)}.xlsx`);
         }
 
         function initResizers() {
-            const resizableCols = document.querySelectorAll('th.resizable');
-            resizableCols.forEach(col => {
-                const colId = col.getAttribute('data-col');
-                const resizer = col.querySelector('.resizer');
+            document.querySelectorAll('th.resizable').forEach(col => {
+                const colId = col.getAttribute('data-col'); const resizer = col.querySelector('.resizer');
                 if(!resizer) return;
-                
-                const newResizer = resizer.cloneNode(true);
-                resizer.parentNode.replaceChild(newResizer, resizer);
+                const newResizer = resizer.cloneNode(true); resizer.parentNode.replaceChild(newResizer, resizer);
 
-                let x = 0;
-                let w = 0;
-
+                let x = 0; let w = 0;
                 const mouseDownHandler = function(e) {
-                    e.stopPropagation(); 
-                    e.preventDefault();
-                    x = e.clientX;
-                    const styles = window.getComputedStyle(col);
-                    w = parseInt(styles.width, 10);
-
-                    document.addEventListener('mousemove', mouseMoveHandler);
-                    document.addEventListener('mouseup', mouseUpHandler);
-                    newResizer.classList.add('resizing');
+                    e.stopPropagation(); e.preventDefault(); x = e.clientX; w = parseInt(window.getComputedStyle(col).width, 10);
+                    document.addEventListener('mousemove', mouseMoveHandler); document.addEventListener('mouseup', mouseUpHandler); newResizer.classList.add('resizing');
                 };
-
                 const mouseMoveHandler = function(e) {
-                    const dx = e.clientX - x;
-                    const newWidth = `${Math.max(60, w + dx)}px`; 
-                    
-                    col.style.width = newWidth;
-                    col.style.minWidth = newWidth;
-                    col.style.maxWidth = newWidth;
-                    
-                    const tds = document.querySelectorAll(`td[data-field="${colId}"]`);
-                    tds.forEach(td => {
-                        td.style.width = newWidth;
-                        td.style.minWidth = newWidth;
-                        td.style.maxWidth = newWidth;
-                    });
+                    const newWidth = `${Math.max(60, w + (e.clientX - x))}px`; 
+                    col.style.width = newWidth; col.style.minWidth = newWidth; col.style.maxWidth = newWidth;
+                    document.querySelectorAll(`td[data-field="${colId}"]`).forEach(td => { td.style.width = newWidth; td.style.minWidth = newWidth; td.style.maxWidth = newWidth; });
                 };
-
                 const mouseUpHandler = function() {
-                    newResizer.classList.remove('resizing');
-                    document.removeEventListener('mousemove', mouseMoveHandler);
-                    document.removeEventListener('mouseup', mouseUpHandler);
+                    newResizer.classList.remove('resizing'); document.removeEventListener('mousemove', mouseMoveHandler); document.removeEventListener('mouseup', mouseUpHandler);
                     localStorage.setItem('botstm_colWidth_' + colId, col.style.width); 
                 };
-
-                newResizer.addEventListener('click', e => e.stopPropagation());
-                newResizer.addEventListener('mousedown', mouseDownHandler);
+                newResizer.addEventListener('click', e => e.stopPropagation()); newResizer.addEventListener('mousedown', mouseDownHandler);
             });
         }
 
         invV2Ref.on('value', snap => {
-            if (!snap.exists()) {
-                database.ref('bot_inventory').once('value', oldSnap => {
-                    let oldData = oldSnap.val() || {};
-                    let batch1Id = 'batch_' + Date.now();
-                    let newData = {};
-                    newData[batch1Id] = {
-                        name: "Партия 608",
-                        isExpanded: true,
-                        order: Date.now(),
-                        items: {}
-                    };
-                    
-                    const INVENTORY_MODELS = ['СМТ-Смарт G4', 'СМТ-Смарт G6', 'СМТ-Смарт G10', 'СМТ- Комплекс G16', 'СМТ- Комплекс G25', 'СМТ- Комплекс G40', 'СМТ- Комплекс G65'];
-                    
-                    INVENTORY_MODELS.forEach((m, idx) => {
-                        let brand = m.toLowerCase().includes('комплекс') ? 'комплекс' : 'смарт';
-                        let sizeMatch = m.match(/G\d{1,2}/i);
-                        let size = sizeMatch ? sizeMatch[0].toLowerCase() : '';
-                        
-                        let oldItem = oldData[m] || {};
-                        let planned = (oldData.planned && oldData.planned[m]) !== undefined ? oldData.planned[m] : 0;
-                        
-                        let itemId = 'item_' + Date.now() + '_' + idx;
-                        newData[batch1Id].items[itemId] = {
-                            displayName: m,
-                            searchModel: brand,
-                            searchSerial: size,
-                            warehouse: oldItem.warehouse || 0,
-                            base_installers: oldItem.base_installers || 0,
-                            offset_installed: oldItem.offset_installed || 0,
-                            planned: planned,
-                            order: idx,
-                            itemColor: '#2563eb'
-                        };
-                    });
-                    
-                    invV2Ref.set(newData);
-                });
-            } else {
-                inventoryV2Data = snap.val();
-                if(!isInlineEditing) renderInventory();
-            }
+            if (snap.exists()) { inventoryV2Data = snap.val(); if(!isInlineEditing) renderInventory(); }
         });
 
         database.ref('.info/connected').on('value', snap => {
@@ -2656,25 +2219,18 @@
         });
 
         dbRef.on('value', snap => {
-            document.getElementById('loadingOverlay').style.display = 'none';
-            dbList = [];
+            document.getElementById('loadingOverlay').style.display = 'none'; dbList = [];
             snap.forEach(child => { dbList.push({ id: child.key, ...child.val() }); });
             dbList.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
             if(!isInlineEditing) renderAll();
         }, err => document.getElementById('loadingOverlay').innerHTML = `<div style="color:red; padding:20px;">Ошибка: ${err.message}</div>`);
 
-        function renderAll() { 
-            renderStats(); 
-            renderSummary(); 
-            renderFullTable(); 
-            renderInventory(); 
-        }
+        function renderAll() { renderStats(); renderSummary(); renderFullTable(); renderInventory(); }
 
         document.querySelectorAll('.tab-btn').forEach(b => b.addEventListener('click', () => {
             if(isInlineEditing) return alert('Завершите групповую правку!');
             document.querySelectorAll('.tab-btn, .tab-content').forEach(e => e.classList.remove('active'));
-            b.classList.add('active');
-            if (b.dataset.target) document.getElementById(b.dataset.target).classList.add('active');
+            b.classList.add('active'); if (b.dataset.target) document.getElementById(b.dataset.target).classList.add('active');
             renderAll();
         }));
 
